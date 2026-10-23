@@ -283,17 +283,23 @@ async function commons(q){ const u='https://commons.wikimedia.org/w/api.php?acti
   const j=await fetch(u).then(r=>r.json()); const ps=Object.values(j.query?.pages||{}).sort((a,b)=>(a.index||0)-(b.index||0));
   return ps.filter(p=>p.imageinfo&&!/logo|map|mapa|diagram|plan\b|icon|flag|advert|poster|chart/i.test(p.title)).map(p=>{ const ii=p.imageinfo[0], md=ii.extmetadata||{};
     return {src:ii.thumburl||ii.url,page:ii.descriptionurl,lic:md.LicenseShortName?.value||'',autor:String(md.Artist?.value||'').replace(/<[^>]+>/g,'').trim().slice(0,40)}; }); }
-function phKey(t,info){ return termo(info?.d||'')||'' ; }
+function phKey(t,info){ let d=String(info?.d||'').replace(/AF_\d+\/\d+(_PS)?/gi,'').replace(/\*/g,'').replace(/COM ENCARGOS COMPLEMENTARES/gi,'').replace(/\b(CHP|CHI)\b.*$/i,'').replace(/\(L X A X C\)/gi,'').replace(/\s+/g,' ').trim(); const w=d.split(' ').filter(Boolean); if(!w.length) return ''; let q=w.slice(0,t==='I'?12:10).join(' ').replace(/[,.;:-]+$/,''); if(t==='I'&&info?.t==='MO') q+=' obra'; return q; }
+function phItem(P){ return P.list[P.i%P.list.length]; }
 function phHTML(k){ const P=PH[k];
   if(!k) return `<div class="nxnone">${ix('img',1.5)}Sem foto de referência para este item.</div>`;
   if(!P||P.st==='load') return `<div class="nxshim" style="position:absolute;inset:0"></div>`;
   if(!P.list.length) return `<div class="nxnone">${ix('img',1.5)}Nenhuma foto encontrada.</div>`;
-  const f=P.list[P.i%P.list.length];
-  return `<a href="${esc(f.page)}" target="_blank" rel="noopener" title="Abrir a foto no Wikimedia Commons"><img src="${esc(f.src)}" alt="Foto ilustrativa: ${esc(k)}" loading="lazy" referrerpolicy="no-referrer"></a><figcaption><span>Foto ilustrativa · ${esc(f.autor||'Wikimedia Commons')}${f.lic?' · '+esc(f.lic):''}</span>${P.list.length>1?`<button class="nxnx" data-act="nxPhNext" data-k="${esc(k)}">Outra foto</button>`:''}</figcaption>`; }
+  const f=phItem(P), loja=P.src==='loja';
+  return `<a href="${esc(f.page)}" target="_blank" rel="noopener" title="${loja?'Abrir a página de onde veio a foto':'Abrir a foto no Wikimedia Commons'}"><img src="${esc(f.src)}" alt="${esc(f.titulo||k)}" loading="lazy" referrerpolicy="no-referrer" onerror="window.__nxPhErr&&window.__nxPhErr(this)" style="${loja?'object-fit:contain;background:#fff':''}"></a><figcaption><span>${loja?`Foto do produto · ${esc(f.site)}`:`Foto ilustrativa · ${esc(f.autor||'Wikimedia Commons')}`}</span>${P.list.length>1?`<button class="nxnx" data-act="nxPhNext" data-k="${esc(k)}">Outra foto (${P.i%P.list.length+1}/${P.list.length})</button>`:''}</figcaption>`; }
+async function lojaFotos(q){ const C=window.ORCALIVRE||{}; if(!C.supabaseUrl) return []; const ctl=new AbortController(); const to=setTimeout(()=>ctl.abort(),20000);
+  try{ const r=await fetch(C.supabaseUrl+'/functions/v1/foto?q='+encodeURIComponent(q)+'&k='+encodeURIComponent(NN(q)),{signal:ctl.signal}); const j=await r.json(); return (j.lista||[]).map(x=>({src:x.img,page:x.pagina,site:x.site,titulo:x.titulo})); }catch(e){ return []; } finally{ clearTimeout(to); } }
+function phPaint(k){ document.querySelectorAll(`.nxph[data-k="${CSS.escape(k)}"]`).forEach(e=>e.innerHTML=phHTML(k)); }
+window.__nxPhErr=img=>{ const fig=img.closest('.nxph'); const k=fig?.dataset.k; const P=PH[k]; if(!P) return; P.list.splice(P.i%P.list.length,1); if(!P.list.length&&P.src==='loja'&&!P.tried){ P.tried=1; P.st='load'; phPaint(k); commons(fig.dataset.alt||k).then(l=>{ PH[k]={st:'ok',src:'commons',list:l.slice(0,8),i:0}; },()=>{ PH[k]={st:'ok',list:[],i:0}; }).then(()=>phPaint(k)); return; } phPaint(k); };
 function fillPhotos(){ document.querySelectorAll('.nxph[data-k]').forEach(el=>{ const k=el.dataset.k; if(!k) return; const P=PH[k];
   if(P&&P.st!=='load'){ el.innerHTML=phHTML(k); return; }
-  if(!P){ PH[k]={st:'load',list:[],i:0}; commons(k).then(l=>{ PH[k]={st:'ok',list:l.slice(0,8),i:0}; },()=>{ PH[k]={st:'ok',list:[],i:0}; }).then(()=>document.querySelectorAll(`.nxph[data-k="${CSS.escape(k)}"]`).forEach(e=>e.innerHTML=phHTML(k))); } }); }
-ACT.nxPhNext=d=>{ const P=PH[d.k]; if(!P) return; P.i++; document.querySelectorAll(`.nxph[data-k="${CSS.escape(d.k)}"]`).forEach(e=>e.innerHTML=phHTML(d.k)); };
+  if(!P){ PH[k]={st:'load',list:[],i:0}; const alt=el.dataset.alt;
+    lojaFotos(k).then(async l=>{ if(l.length){ PH[k]={st:'ok',src:'loja',list:l,i:0}; return; } const c=alt?await commons(alt).catch(()=>[]):[]; PH[k]={st:'ok',src:'commons',list:c.slice(0,8),i:0,tried:1}; }).then(()=>phPaint(k)); } }); }
+ACT.nxPhNext=d=>{ const P=PH[d.k]; if(!P) return; P.i++; phPaint(d.k); };
 
 /* ================================================================ cadernos técnicos e documentação das bases */
 const DOCS={SINAPI:['SINAPI · Caixa','https://www.caixa.gov.br/poder-publico/modernizacao-gestao/sinapi/Paginas/default.aspx'],
