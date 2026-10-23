@@ -4,21 +4,21 @@ import asyncio, json, os, sys, traceback
 import edge_tts
 from playwright.async_api import async_playwright
 
-OUT = sys.argv[1] if len(sys.argv) > 1 else "/tmp/video"
+OUT = sys.argv[1] if len(sys.argv) > 1 and not sys.argv[1].startswith("--") else "/tmp/video"
 os.makedirs(OUT, exist_ok=True)
 URL = "https://matheuscivil7-cmd.github.io/orcalivre/"
 
 CENAS = [
-    "Orçar uma obra não precisa ser lento, caro, nem complicado.",
-    "Este é o OrçaLivre: a plataforma de orçamento de obras que reúne bancos de preços oficiais, inteligência artificial e licitações em um só lugar. E é gratuita.",
-    "O SINAPI dos vinte e sete estados e outras bases públicas chegam atualizados automaticamente, todo mês. Você só escolhe o banco, o estado e a data-base.",
-    "Montar a planilha é direto. Insira etapas, composições e insumos com um clique, ou pelo teclado, e acompanhe o preço total, o BDI e o custo por metro quadrado em tempo real.",
-    "Encontre qualquer composição em segundos, com foto de referência do item e acesso ao caderno técnico de onde ela vem.",
-    "Ficou em dúvida? O assistente de inteligência artificial indica a composição certa e revisa o seu orçamento com você.",
-    "Curva ABC, indicadores, cronograma físico-financeiro e BDI pela fórmula do TCU já vêm prontos.",
-    "E, com um clique, o orçamento vira uma apresentação executiva, pronta para o cliente ou para a diretoria.",
-    "Para quem disputa licitações, um radar de editais do Portal Nacional de Contratações Públicas, com farol de prazos, jurisprudência do TCU e as ferramentas da Lei catorze mil cento e trinta e três.",
-    "OrçaLivre. Orçamentos mais rápidos, mais precisos, e sem custo. Comece agora.",
+    ["Orçar uma obra não precisa ser lento, manual, nem complicado."],
+    ["Este é o OrçaLivre.", "A plataforma de orçamento de obras que reúne bancos de preços oficiais, inteligência artificial e licitações, em um só lugar."],
+    ["O SINAPI dos vinte e sete estados e outras bases públicas chegam atualizados automaticamente, todo mês.", "Você só escolhe o banco, o estado e a data-base."],
+    ["Montar a planilha é simples.", "Insira etapas, composições e insumos com um clique, ou pelo teclado.", "E acompanhe o preço total, o BDI e o custo por metro quadrado, em tempo real."],
+    ["Encontre qualquer composição em segundos, com foto de referência e acesso ao caderno técnico de origem."],
+    ["Ficou em dúvida?", "O assistente de inteligência artificial indica a composição certa e revisa o seu orçamento com você."],
+    ["Curva ABC, indicadores, cronograma físico-financeiro e BDI pela fórmula do TCU.", "Tudo pronto, sem planilhas paralelas."],
+    ["Com um clique, o orçamento vira uma apresentação executiva, pronta para o cliente ou para a diretoria."],
+    ["Para quem disputa licitações, há um radar de editais do Portal Nacional de Contratações Públicas.", "Com farol de prazos, jurisprudência do TCU e as ferramentas da Lei catorze mil cento e trinta e três."],
+    ["OrçaLivre.", "Orçamentos mais rápidos e mais precisos.", "Comece agora."],
 ]
 VOZES = ["pt-BR-AntonioNeural", "pt-BR-FranciscaNeural", "pt-BR-ThalitaMultilingualNeural"]
 
@@ -30,11 +30,12 @@ async def narracao():
     except Exception as e:
         print("lista de vozes:", e)
     for v in VOZES:
-        for i, t in enumerate(CENAS):
+        for i, frases in enumerate(CENAS):
+          for j, t in enumerate(frases):
             for tent in range(3):
                 try:
-                    com = edge_tts.Communicate(t, v, rate="+3%")
-                    with open(f"{OUT}/{v}_{i:02d}.mp3", "wb") as f:
+                    com = edge_tts.Communicate(t, v, rate="-6%")
+                    with open(f"{OUT}/{v}_{i:02d}_{j}.mp3", "wb") as f:
                         async for ch in com.stream():
                             if ch["type"] == "audio":
                                 f.write(ch["data"])
@@ -119,6 +120,7 @@ async def telas():
 
 async def main():
     await narracao()
-    await telas()
+    if "--telas" in sys.argv:
+        await telas()
 
 asyncio.run(main())
