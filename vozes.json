@@ -1,0 +1,97 @@
+[
+ {
+  "Name": "Microsoft Server Speech Text to Speech Voice (pt-BR, ThalitaMultilingualNeural)",
+  "ShortName": "pt-BR-ThalitaMultilingualNeural",
+  "Gender": "Female",
+  "Locale": "pt-BR",
+  "LocaleName": "Portuguese (Brazil)",
+  "SuggestedCodec": "audio-24khz-48kbitrate-mono-mp3",
+  "FriendlyName": "Microsoft ThalitaMultilingual Online (Natural) - Portuguese (Brazil)",
+  "Status": "GA",
+  "VoiceTag": {
+   "ContentCategories": [
+    "General"
+   ],
+   "VoicePersonalities": [
+    "Friendly",
+    "Positive"
+   ]
+  }
+ },
+ {
+  "Name": "Microsoft Server Speech Text to Speech Voice (pt-BR, AntonioNeural)",
+  "ShortName": "pt-BR-AntonioNeural",
+  "Gender": "Male",
+  "Locale": "pt-BR",
+  "LocaleName": "Portuguese (Brazil)",
+  "SuggestedCodec": "audio-24khz-48kbitrate-mono-mp3",
+  "FriendlyName": "Microsoft Antonio Online (Natural) - Portuguese (Brazil)",
+  "Status": "GA",
+  "VoiceTag": {
+   "ContentCategories": [
+    "General"
+   ],
+   "VoicePersonalities": [
+    "Friendly",
+    "Positive"
+   ]
+  }
+ },
+ {
+  "Name": "Microsoft Server Speech Text to Speech Voice (pt-BR, FranciscaNeural)",
+  "ShortName": "pt-BR-FranciscaNeural",
+  "Gender": "Female",
+  "Locale": "pt-BR",
+  "LocaleName": "Portuguese (Brazil)",
+  "SuggestedCodec": "audio-24khz-48kbitrate-mono-mp3",
+  "FriendlyName": "Microsoft Francisca Online (Natural) - Portuguese (Brazil)",
+  "Status": "GA",
+  "VoiceTag": {
+   "ContentCategories": [
+    "General"
+   ],
+   "VoicePersonalities": [
+    "Friendly",
+    "Positive"
+   ]
+  }
+ },
+ {
+  "Name": "Microsoft Server Speech Text to Speech Voice (pt-PT, DuarteNeural)",
+  "ShortName": "pt-PT-DuarteNeural",
+  "Gender": "Male",
+  "Locale": "pt-PT",
+  "LocaleName": "Portuguese (Portugal)",
+  "SuggestedCodec": "audio-24khz-48kbitrate-mono-mp3",
+  "FriendlyName": "Microsoft Duarte Online (Natural) - Portuguese (Portugal)",
+  "Status": "GA",
+  "VoiceTag": {
+   "ContentCategories": [
+    "General"
+   ],
+   "VoicePersonalities": [
+    "Friendly",
+    "Positive"
+   ]
+  }
+ },
+ {
+  "Name": "Microsoft Server Speech Text to Speech Voice (pt-PT, RaquelNeural)",
+  "ShortName": "pt-PT-RaquelNeural",
+  "Gender": "Female",
+  "Locale": "pt-PT",
+  "LocaleName": "Portuguese (Portugal)",
+  "SuggestedCodec": "audio-24khz-48kbitrate-mono-mp3",
+  "FriendlyName": "Microsoft Raquel Online (Natural) - Portuguese (Portugal)",
+  "Status": "GA",
+  "VoiceTag": {
+   "ContentCategories": [
+    "General"
+   ],
+   "VoicePersonalities": [
+    "Friendly",
+    "Positive"
+   ]
+  }
+ }
+]
