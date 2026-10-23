@@ -274,7 +274,7 @@ body.uxprint>*:not(#uxdeck){display:none!important}
   .uxcol main{padding:4px 12px 90px}
   .uxh1{flex-wrap:wrap} .uxh1 .av{display:none} .uxha{width:100%;justify-content:flex-start}
   .uxkp{grid-template-columns:repeat(2,minmax(0,1fr))} .uxkp>div:nth-child(n+4){display:none} .uxkp .main{grid-column:1/-1}
-  .uxbar{top:60px} .uxadd{width:100%;overflow-x:auto} .uxadd .lb{display:none} .uxab kbd{display:none} .uxfind{min-width:0;flex:1}
+  .uxbar{top:60px} .uxadd{width:100%;overflow-x:auto;scrollbar-width:none} .uxadd::-webkit-scrollbar{display:none} .uxadd .lb{display:none} .uxab kbd{display:none} .uxfind{min-width:0;flex:1}
   .uxempty .g{grid-template-columns:repeat(2,minmax(0,1fr))}
   .uxstats{grid-template-columns:1fr} .uxfeat{grid-template-columns:1fr} .uxmock{display:none}
   #uxins{display:none!important}
