@@ -61,6 +61,21 @@
  },
  "gerado": "2026-10-23",
  "pub": {
+  "CDHU": {
+   "n": "CDHU · São Paulo",
+   "vers": [
+    {
+     "v": "2026-08",
+     "m": "2026-08",
+     "ufs": [
+      "SP"
+     ],
+     "regs": [
+      "SD"
+     ]
+    }
+   ]
+  },
   "COMPESA": {
    "n": "COMPESA · Pernambuco",
    "vers": [
@@ -170,6 +185,7 @@
       "CE",
       "DF",
       "ES",
+      "GO",
       "MA",
       "MG",
       "MS",
@@ -186,7 +202,8 @@
       "RS",
       "SC",
       "SE",
-      "SP"
+      "SP",
+      "TO"
      ],
      "regs": [
       "SD"
