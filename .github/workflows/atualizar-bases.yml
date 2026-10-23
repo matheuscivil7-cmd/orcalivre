@@ -2,16 +2,19 @@ name: Atualizar bases de preços
 
 on:
   schedule:
-    # A Caixa publica o SINAPI entre os dias 5 e 15 de cada mês; o robô confere todo dia do 3 ao 25 (09h de Brasília).
+    # Confere todo dia do 3 ao 25 (09h de Brasília). Cada base só é baixada quando sai edição nova.
     - cron: "0 12 3-25 * *"
   workflow_dispatch:
     inputs:
       meses:
-        description: "Quantos meses recentes garantir"
+        description: "SINAPI: quantos meses recentes garantir"
         default: "3"
       forcar:
-        description: "Refazer meses que já existem (sim/não)"
+        description: "Refazer edições que já existem (sim/não)"
         default: "não"
+      bases:
+        description: "Outras bases (vazio = todas): SICRO SUDECAP SIURB DER-ES GOINFRA SECID-PR COMPESA SANEPAR CDHU"
+        default: ""
 
 permissions:
   contents: write
@@ -19,28 +22,35 @@ permissions:
 concurrency: atualizar-bases
 
 jobs:
-  sinapi:
+  bases:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
       - run: pip install -r robo/requirements.txt
-      - name: Baixar SINAPI da Caixa e gerar os arquivos
+      - name: SINAPI (Caixa)
         id: robo
+        continue-on-error: true
         run: |
           ARGS="--meses ${{ github.event.inputs.meses || '3' }}"
           if [ "${{ github.event.inputs.forcar }}" = "sim" ]; then ARGS="$ARGS --forcar"; fi
           python robo/atualizar_sinapi.py $ARGS
-      - name: Boletim CDHU (SP)
-        run: python robo/cdhu.py
+      - name: Demais bases públicas (SICRO, SUDECAP, SIURB, DER-ES, GOINFRA, SECID-PR, COMPESA, SANEPAR, CDHU)
+        id: pub
+        continue-on-error: true
+        run: |
+          ARGS=""
+          if [ "${{ github.event.inputs.forcar }}" = "sim" ]; then ARGS="--forcar"; fi
+          rm -rf dados/cdhu
+          python robo/bases_publicas.py $ARGS ${{ github.event.inputs.bases }}
       - name: Publicar no site
         run: |
           git config user.name "orcalivre-robo"
           git config user.email "actions@users.noreply.github.com"
-          git add dados
+          git add -A dados
           if git diff --cached --quiet; then echo "Nada novo."; exit 0; fi
-          git commit -m "Bases de preços: SINAPI ${{ steps.robo.outputs.novos }}"
+          git commit -m "Bases de preços: SINAPI ${{ steps.robo.outputs.novos }} ${{ steps.pub.outputs.pub }}"
           git push
