@@ -439,5 +439,12 @@ def achar_cabecalho(rows, *padroes):
         raise
 
 
+def norm(s):
+    """Maiúsculas, sem acentos e com quebras de linha/espaços repetidos viram um espaço
+    (os cabeçalhos oficiais têm quebra de linha dentro da célula)."""
+    t = unicodedata.normalize("NFD", str(s or "")).encode("ascii", "ignore").decode().upper()
+    return re.sub(r"\s+", " ", t).strip()
+
+
 if __name__ == "__main__":
     main()
