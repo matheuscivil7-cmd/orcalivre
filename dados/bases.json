@@ -39,9 +39,8 @@
     "ins": 6124,
     "comp": 10599,
     "an": 56568,
-    "comp_sem_preco_uf": 0,
-    "ins_preco_so_sp": 296,
-    "emissao": "09/10/2026"
+    "emissao": "09/10/2026",
+    "conferencia_sp": 0.9792
    },
    "2026-08": {
     "ins": 6120,
