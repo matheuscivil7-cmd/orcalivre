@@ -1,0 +1,46 @@
+name: Atualizar bases de preços
+
+on:
+  schedule:
+    # A Caixa publica o SINAPI entre os dias 5 e 15 de cada mês; o robô confere todo dia do 3 ao 25 (09h de Brasília).
+    - cron: "0 12 3-25 * *"
+  workflow_dispatch:
+    inputs:
+      meses:
+        description: "Quantos meses recentes garantir"
+        default: "3"
+      forcar:
+        description: "Refazer meses que já existem (sim/não)"
+        default: "não"
+
+permissions:
+  contents: write
+
+concurrency: atualizar-bases
+
+jobs:
+  sinapi:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r robo/requirements.txt
+      - name: Baixar SINAPI da Caixa e gerar os arquivos
+        id: robo
+        run: |
+          ARGS="--meses ${{ github.event.inputs.meses || '3' }}"
+          if [ "${{ github.event.inputs.forcar }}" = "sim" ]; then ARGS="$ARGS --forcar"; fi
+          python robo/atualizar_sinapi.py $ARGS
+      - name: Boletim CDHU (SP)
+        run: python robo/cdhu.py
+      - name: Publicar no site
+        run: |
+          git config user.name "orcalivre-robo"
+          git config user.email "actions@users.noreply.github.com"
+          git add dados
+          if git diff --cached --quiet; then echo "Nada novo."; exit 0; fi
+          git commit -m "Bases de preços: SINAPI ${{ steps.robo.outputs.novos }}"
+          git push
