@@ -59,12 +59,117 @@
   },
   "fonte": "SINAPI – Caixa Econômica Federal (relatórios mensais XLSX)"
  },
- "cdhu": {
-  "versao": 202,
-  "competencia": "2026-05",
-  "data_base": "MAIO/26",
-  "leis_sociais": 1.2823,
-  "fonte": "CDHU – Boletim Referencial de Custos (SP)"
- },
- "gerado": "2026-10-23"
+ "gerado": "2026-10-23",
+ "pub": {
+  "COMPESA": {
+   "n": "COMPESA · Pernambuco",
+   "vers": [
+    {
+     "v": "2026-07",
+     "m": "2026-07",
+     "ufs": [
+      "PE"
+     ],
+     "regs": [
+      "SD",
+      "CD"
+     ]
+    }
+   ]
+  },
+  "DER-ES": {
+   "n": "DER-ES · Edificações",
+   "vers": [
+    {
+     "v": "2026-05",
+     "m": "2026-05",
+     "ufs": [
+      "ES"
+     ],
+     "regs": [
+      "SD"
+     ]
+    }
+   ]
+  },
+  "GOINFRA-CIV": {
+   "n": "GOINFRA · Obras civis",
+   "vers": [
+    {
+     "v": "T342-343",
+     "m": "2026-06",
+     "ufs": [
+      "GO"
+     ],
+     "regs": [
+      "SD",
+      "CD"
+     ]
+    }
+   ]
+  },
+  "GOINFRA-ROD": {
+   "n": "GOINFRA · Rodoviária",
+   "vers": [
+    {
+     "v": "T340-341",
+     "m": "2026-06",
+     "ufs": [
+      "GO"
+     ],
+     "regs": [
+      "SD",
+      "CD"
+     ]
+    }
+   ]
+  },
+  "SANEPAR": {
+   "n": "SANEPAR · Paraná",
+   "vers": [
+    {
+     "v": "2026-03",
+     "m": "2026-03",
+     "ufs": [
+      "PR"
+     ],
+     "regs": [
+      "SD"
+     ]
+    }
+   ]
+  },
+  "SECID-PR": {
+   "n": "SECID-PR · Edificações",
+   "vers": [
+    {
+     "v": "2026-07",
+     "m": "2026-07",
+     "ufs": [
+      "PR"
+     ],
+     "regs": [
+      "SD",
+      "CD"
+     ]
+    }
+   ]
+  },
+  "SUDECAP": {
+   "n": "SUDECAP · Belo Horizonte",
+   "vers": [
+    {
+     "v": "2026-07",
+     "m": "2026-07",
+     "ufs": [
+      "MG"
+     ],
+     "regs": [
+      "SD",
+      "CD"
+     ]
+    }
+   ]
+  }
+ }
 }
