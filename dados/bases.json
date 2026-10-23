@@ -1,0 +1,73 @@
+{
+ "sinapi": {
+  "meses": [
+   "2026-09",
+   "2026-08",
+   "2026-07"
+  ],
+  "ufs": [
+   "AC",
+   "AL",
+   "AM",
+   "AP",
+   "BA",
+   "CE",
+   "DF",
+   "ES",
+   "GO",
+   "MA",
+   "MG",
+   "MS",
+   "MT",
+   "PA",
+   "PB",
+   "PE",
+   "PI",
+   "PR",
+   "RJ",
+   "RN",
+   "RO",
+   "RR",
+   "RS",
+   "SC",
+   "SE",
+   "SP",
+   "TO"
+  ],
+  "info": {
+   "2026-09": {
+    "ins": 6124,
+    "comp": 10599,
+    "an": 56568,
+    "comp_sem_preco_uf": 0,
+    "ins_preco_so_sp": 296,
+    "emissao": "09/10/2026"
+   },
+   "2026-08": {
+    "ins": 6120,
+    "comp": 10547,
+    "an": 56281,
+    "comp_sem_preco_uf": 0,
+    "ins_preco_so_sp": 296,
+    "emissao": "11/09/2026"
+   },
+   "2026-07": {
+    "ins": 6120,
+    "comp": 10544,
+    "an": 56316,
+    "comp_sem_preco_uf": 0,
+    "ins_preco_so_sp": 296,
+    "emissao": "11/08/2026"
+   }
+  },
+  "fonte": "SINAPI – Caixa Econômica Federal (relatórios mensais XLSX)"
+ },
+ "cdhu": {
+  "versao": 202,
+  "competencia": "2026-05",
+  "data_base": "MAIO/26",
+  "leis_sociais": 1.2823,
+  "fonte": "CDHU – Boletim Referencial de Custos (SP)"
+ },
+ "gerado": "2026-10-23"
+}

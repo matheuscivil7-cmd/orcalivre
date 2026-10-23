@@ -1,0 +1,1007 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>OrçaLivre</title>
+<meta name="description" content="Orçamento de obras gratuito com SINAPI (27 estados, desonerado e não desonerado), curva ABC, BDI, cronograma e relatórios.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%231d5a94'/%3E%3Ctext x='16' y='21' font-family='Arial' font-weight='700' font-size='13' fill='white' text-anchor='middle'%3ER$%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..125,500..800&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+html{color-scheme:light}:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}
+/* Layout: bancada de trabalho — trilho de módulos fixo à esquerda e a planilha ocupando a largura; no celular o trilho vira faixa de abas no topo */
+:root{
+  --bg:#e9edf0; --panel:#fbfcfd; --sunk:#e1e6ea; --ink:#14202b; --muted:#566573; --line:#cdd5dc;
+  --accent:#1d5a94; --accent-ink:#ffffff; --accent-soft:#dbe7f2; --ochre:#a86c0a; --ochre-soft:#f4e6cb;
+  --good:#2c7a4c; --good-soft:#dcefe3; --bad:#b0392c; --bad-soft:#f6dedb; --c-soft:#e4e8eb;
+  --f-display:"Archivo","Arial Narrow",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+  --r:6px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f151a; --panel:#161f26; --sunk:#1c272f; --ink:#e2e8ed; --muted:#93a2af; --line:#2a3741;
+  --accent:#5c9ddb; --accent-ink:#08131d; --accent-soft:#1b3349; --ochre:#e1a641; --ochre-soft:#3a2e17;
+  --good:#5cc28a; --good-soft:#173727; --bad:#ec7f72; --bad-soft:#3d1d19; --c-soft:#26323b; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f151a; --panel:#161f26; --sunk:#1c272f; --ink:#e2e8ed; --muted:#93a2af; --line:#2a3741;
+  --accent:#5c9ddb; --accent-ink:#08131d; --accent-soft:#1b3349; --ochre:#e1a641; --ochre-soft:#3a2e17;
+  --good:#5cc28a; --good-soft:#173727; --bad:#ec7f72; --bad-soft:#3d1d19; --c-soft:#26323b; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:14px/1.45 var(--f-body);-webkit-font-smoothing:antialiased}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--panel)}
+button,input,select,textarea{font:inherit;color:inherit}
+a{color:var(--accent)}
+.mono{font-family:var(--f-mono);font-size:.92em}
+.r{text-align:right}
+.muted{color:var(--muted)}
+.b{font-weight:600}
+.num,.tab{font-variant-numeric:tabular-nums}
+
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:9;background:var(--panel);border-bottom:1px solid var(--line);
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:10px;
+  display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.brand{display:flex;align-items:baseline;gap:8px;font-family:var(--f-display);font-weight:800;font-stretch:88%;font-size:20px;letter-spacing:-.01em}
+.brand .mk{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:5px;background:var(--accent);color:var(--accent-ink);font-size:12px;font-stretch:80%;align-self:center}
+.brand small{font:500 11px var(--f-mono);color:var(--muted);letter-spacing:.02em}
+.ctx{display:flex;gap:8px;align-items:center;flex:1;min-width:0;flex-wrap:wrap}
+.ctx select{max-width:320px}
+.pill{font-size:11px;padding:3px 8px;border-radius:999px;background:var(--sunk);color:var(--muted);white-space:nowrap}
+.pill.ok{background:var(--good-soft);color:var(--good)}
+.pill.warn{background:var(--ochre-soft);color:var(--ochre)}
+
+.shell{display:grid;grid-template-columns:196px minmax(0,1fr);gap:0;min-height:calc(100vh - 52px)}
+.side{position:sticky;top:calc(env(safe-area-inset-top,0px) + 52px);align-self:start;padding:14px 10px 14px max(10px,env(safe-area-inset-left,0px));display:flex;flex-direction:column;gap:2px}
+.side .grp{font:600 10px var(--f-body);text-transform:uppercase;letter-spacing:.1em;color:var(--muted);padding:12px 10px 4px}
+.nav{display:flex;gap:10px;align-items:center;text-align:left;border:0;background:none;padding:7px 10px;border-radius:var(--r);cursor:pointer;color:var(--ink)}
+.nav:hover{background:var(--sunk)}
+.nav.on{background:var(--accent-soft);color:var(--accent);font-weight:600}
+.nav .k{font:500 10px var(--f-mono);color:var(--muted);width:18px}
+.nav.on .k{color:var(--accent)}
+main{padding-block:18px 60px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));min-width:0}
+
+h1{font:800 26px/1.1 var(--f-display);font-stretch:90%;letter-spacing:-.01em;margin:0;text-wrap:balance}
+h2{font:700 16px/1.2 var(--f-display);font-stretch:95%;margin:0 0 10px;text-wrap:balance}
+h3{font:600 13px var(--f-body);margin:0 0 6px}
+.eyebrow{font:600 10.5px var(--f-body);text-transform:uppercase;letter-spacing:.1em;color:var(--muted)}
+.head{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+.head .sub{color:var(--muted);margin-top:4px;font-size:13px}
+.actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.stack{display:flex;flex-direction:column;gap:16px}
+
+.btn{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--panel);padding:6px 11px;border-radius:var(--r);cursor:pointer;font-size:13px;white-space:nowrap}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:600}
+.btn.danger{color:var(--bad)}
+.btn.sm{padding:3px 8px;font-size:12px}
+.btn.ghost{border-color:transparent;background:none}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.ib{border:0;background:none;cursor:pointer;padding:2px 5px;border-radius:4px;color:var(--muted);font-size:13px;line-height:1}
+.ib:hover{background:var(--sunk);color:var(--ink)}
+.ib.on{color:var(--ochre);font-weight:700}
+:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+
+input[type=text],input[type=number],input[type=month],input:not([type]),select,textarea{border:1px solid var(--line);background:var(--panel);border-radius:5px;padding:6px 8px;min-width:0}
+textarea{width:100%;resize:vertical}
+.field{display:flex;flex-direction:column;gap:3px;min-width:0}
+.field>span{font-size:11.5px;color:var(--muted)}
+.grid{display:grid;gap:10px 14px;grid-template-columns:repeat(auto-fill,minmax(180px,1fr))}
+.grid .w2{grid-column:span 2}
+@media (max-width:520px){.grid .w2{grid-column:auto}}
+
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px}
+.panel.flush{padding:0;overflow:hidden}
+.note{font-size:12.5px;color:var(--muted)}
+.banner{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:9px 12px;border-radius:var(--r);background:var(--ochre-soft);color:var(--ink);font-size:13px;margin-bottom:12px}
+.banner b{color:var(--ochre)}
+
+.scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table.t{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums;font-size:13px}
+.t th{position:sticky;top:0;background:var(--sunk);text-align:left;font:600 11px var(--f-body);text-transform:uppercase;letter-spacing:.06em;color:var(--muted);padding:7px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+.t td{padding:5px 8px;border-bottom:1px solid var(--line);vertical-align:middle}
+.t td.desc{min-width:260px}
+.t tr.r-e td{background:var(--accent-soft);font-weight:600}
+.t tr.r-s td{background:var(--sunk);font-weight:600}
+.t tr.r-v.sel td,.t tr.r-e.sel td,.t tr.r-s.sel td{box-shadow:inset 0 0 0 9999px color-mix(in srgb,var(--ochre) 12%,transparent)}
+.t tr.r-v:hover td{background:color-mix(in srgb,var(--sunk) 55%,transparent)}
+.t tr.tot td{font-weight:700;border-top:2px solid var(--ink);background:var(--panel)}
+.t td.n{font-family:var(--f-mono);font-size:12px;white-space:nowrap;color:var(--muted)}
+.t tr.r-e td.n,.t tr.r-s td.n{color:var(--ink)}
+.t .act{white-space:nowrap;text-align:right}
+.cell{width:100%;border:1px solid transparent;background:transparent;padding:3px 5px;border-radius:4px}
+.cell:hover{border-color:var(--line)}
+.cell:focus{border-color:var(--accent);background:var(--panel)}
+.cell.q{width:92px;text-align:right}
+.cell.h{font-weight:600;text-transform:uppercase}
+.tag{display:inline-block;font:500 10.5px var(--f-mono);padding:1px 6px;border-radius:4px;background:var(--sunk);color:var(--muted);white-space:nowrap}
+.tt{display:inline-block;font:600 10px var(--f-body);letter-spacing:.04em;padding:1px 6px;border-radius:4px;white-space:nowrap}
+.tt-MAT{background:var(--accent-soft);color:var(--accent)}
+.tt-MO{background:var(--ochre-soft);color:var(--ochre)}
+.tt-EQ{background:var(--good-soft);color:var(--good)}
+.tt-SV,.tt-OUT{background:var(--c-soft);color:var(--muted)}
+.tt-C{background:var(--ink);color:var(--panel)}
+.cl{display:inline-grid;place-items:center;width:22px;height:20px;border-radius:4px;font:700 11px var(--f-mono)}
+.cl-A{background:var(--accent);color:var(--accent-ink)}
+.cl-B{background:var(--ochre-soft);color:var(--ochre)}
+.cl-C{background:var(--c-soft);color:var(--muted)}
+.linkish{border:0;background:none;padding:0;color:var(--accent);cursor:pointer;font:inherit;text-align:left}
+.linkish:hover{text-decoration:underline}
+
+.toolbar{display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding:10px;border-bottom:1px solid var(--line);background:var(--panel)}
+.toolbar .sep{width:1px;height:22px;background:var(--line);margin:0 4px}
+.sumbar{display:flex;flex-wrap:wrap;gap:0;border-top:1px solid var(--line)}
+.sumbar>div{flex:1 1 160px;padding:10px 14px;border-right:1px solid var(--line)}
+.sumbar>div:last-child{border-right:0}
+.sumbar .v{font:700 18px var(--f-display);font-stretch:92%;font-variant-numeric:tabular-nums}
+.sumbar .big .v{color:var(--accent);font-size:21px}
+
+.cards{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(270px,1fr))}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px;display:flex;flex-direction:column;gap:8px}
+.card .nm{font:700 15px/1.25 var(--f-display);font-stretch:95%}
+.card .meta{font-size:12px;color:var(--muted)}
+.card .tv{font:700 20px var(--f-display);font-stretch:92%;font-variant-numeric:tabular-nums}
+.card .row{display:flex;gap:6px;flex-wrap:wrap;margin-top:auto}
+.card.on{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+
+.kpis{display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(170px,1fr))}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px 14px}
+.kpi .l{font-size:11.5px;color:var(--muted)}
+.kpi .v{font:700 21px/1.2 var(--f-display);font-stretch:90%;font-variant-numeric:tabular-nums;margin-top:2px}
+.kpi .s{font-size:11.5px;color:var(--muted)}
+.two{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(320px,1fr))}
+.hbar{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,2fr) auto;gap:6px 10px;align-items:center;font-size:12.5px}
+.hbar .tr{height:12px;background:var(--sunk);border-radius:3px;overflow:hidden}
+.hbar .fl{height:100%;background:var(--accent);border-radius:3px}
+.hbar .lb{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stackbar{display:flex;height:22px;border-radius:4px;overflow:hidden;background:var(--sunk)}
+.stackbar>div{height:100%}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;margin-top:8px}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+.c-MAT{background:var(--accent)} .c-MO{background:var(--ochre)} .c-EQ{background:var(--good)} .c-OUT,.c-SV{background:var(--muted)}
+
+svg.chart{width:100%;height:auto;display:block}
+svg .gl{stroke:var(--line);stroke-width:1}
+svg .ax{fill:var(--muted);font:10px var(--f-body)}
+svg .bar-A{fill:var(--accent)} svg .bar-B{fill:var(--ochre)} svg .bar-C{fill:var(--muted);opacity:.55}
+svg .bar-m{fill:var(--accent);opacity:.35}
+svg .ln{fill:none;stroke:var(--ink);stroke-width:1.8}
+svg .dot{fill:var(--panel);stroke:var(--ink);stroke-width:1.5}
+svg .th{stroke:var(--bad);stroke-dasharray:4 3;stroke-width:1}
+svg .thl{fill:var(--bad);font:600 10px var(--f-body)}
+
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+.seg button{border:0;background:var(--panel);padding:5px 12px;cursor:pointer;font-size:13px}
+.seg button.on{background:var(--accent);color:var(--accent-ink);font-weight:600}
+
+.modal{position:fixed;inset:0;z-index:30;background:color-mix(in srgb,#000 45%,transparent);display:flex;align-items:flex-start;justify-content:center;
+  padding:calc(env(safe-area-inset-top,0px) + 4vh) max(12px,env(safe-area-inset-right,0px)) calc(env(safe-area-inset-bottom,0px) + 12px) max(12px,env(safe-area-inset-left,0px));overflow-y:auto}
+.dlg{background:var(--panel);border:1px solid var(--line);border-radius:10px;width:min(640px,100%);box-shadow:0 18px 50px rgba(0,0,0,.25);display:flex;flex-direction:column;max-height:none}
+.dlg.wide{width:min(1060px,100%)}
+.dlg .dh{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;padding:14px 16px;border-bottom:1px solid var(--line)}
+.dlg .db{padding:14px 16px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.dlg .df{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;padding:12px 16px;border-top:1px solid var(--line)}
+.res{max-height:52vh;overflow:auto;border:1px solid var(--line);border-radius:6px}
+.blk{border:1px solid var(--line);border-radius:8px;padding:12px;display:flex;flex-direction:column;gap:10px}
+.blk h3{display:flex;gap:8px;align-items:center}
+#toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 18px);transform:translateX(-50%);background:var(--ink);color:var(--panel);padding:9px 14px;border-radius:6px;font-size:13px;z-index:40;max-width:calc(100% - 32px)}
+.empty{padding:30px 16px;text-align:center;color:var(--muted)}
+.empty b{display:block;color:var(--ink);font:700 16px var(--f-display);margin-bottom:6px}
+.crono input{width:58px;text-align:right;padding:3px 4px}
+.chk{display:inline-flex;gap:6px;align-items:center;font-size:13px}
+.src{display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(230px,1fr))}
+.src a{display:block;padding:10px 12px;border:1px solid var(--line);border-radius:6px;text-decoration:none;color:var(--ink)}
+.src a b{display:block;color:var(--accent)}
+.src a span{font-size:12px;color:var(--muted)}
+.tog{width:18px;height:18px;border:1px solid var(--line);background:var(--panel);border-radius:3px;cursor:pointer;font:600 12px/1 var(--f-mono);margin-right:6px;padding:0}
+
+@media (max-width:860px){
+  .shell{grid-template-columns:minmax(0,1fr)}
+  .side{position:sticky;top:calc(env(safe-area-inset-top,0px) + 50px);z-index:8;flex-direction:row;overflow-x:auto;background:var(--bg);border-bottom:1px solid var(--line);padding:6px max(10px,env(safe-area-inset-right,0px)) 6px max(10px,env(safe-area-inset-left,0px))}
+  .side .grp{display:none}
+  .nav{white-space:nowrap}
+  .nav .k{display:none}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand"><span class="mk">R$</span>OrçaLivre <small>orçamento de obras</small></div>
+  <div class="ctx" id="ctx"></div>
+</header>
+<div class="shell">
+  <nav class="side" id="side"></nav>
+  <main id="main"><div class="empty"><b>Carregando…</b>Preparando bases e orçamentos.</div></main>
+</div>
+<div id="modal" class="modal" hidden></div>
+<div id="toast" hidden></div>
+
+<script src="config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<script>
+"use strict";
+/* ============ utilidades ============ */
+const $=(s,r=document)=>r.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const nf2=new Intl.NumberFormat('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+const nf4=new Intl.NumberFormat('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:4});
+const nf0=new Intl.NumberFormat('pt-BR',{maximumFractionDigits:0});
+const R=v=>nf2.format(v||0), Q=v=>nf4.format(v||0), P=v=>nf2.format(v||0)+'%';
+const r2=v=>Math.round(((v||0)+Number.EPSILON)*100)/100;
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+const norm=s=>String(s??'').normalize('NFD').replace(/[̀-ͯ]/g,'').toUpperCase();
+const str=v=>v==null?'':String(v).trim();
+function num(v){ if(typeof v==='number') return v; if(v==null) return NaN; let s=String(v).trim().replace(/R\$|\s|%/g,''); if(!s) return NaN; if(s.includes(',')) s=s.replace(/\./g,'').replace(',','.'); return parseFloat(s); }
+const cleanCode=v=>{ let s=str(v); if(!s) return ''; if(/^\d+\.0+$/.test(s)) s=s.replace(/\.0+$/,''); return s; };
+const fmtMes=m=>{ if(!m) return '—'; const [y,mm]=String(m).split('-'); return mm?`${mm}/${y}`:m; };
+const TL={MAT:'Material',MO:'Mão de obra',EQ:'Equipamento',SV:'Serviço',OUT:'Outros'};
+const TS={MAT:'MAT',MO:'M.O.',EQ:'EQUIP',SV:'SERV',OUT:'OUTROS'};
+function toast(msg){ const t=$('#toast'); t.textContent=msg; t.hidden=false; clearTimeout(toast._t); toast._t=setTimeout(()=>t.hidden=true,3400); }
+const lsGet=(k,d)=>{ try{ const v=localStorage.getItem(k); return v==null?d:JSON.parse(v);}catch{ return d; } };
+const lsSet=(k,v)=>{ try{ localStorage.setItem(k,JSON.stringify(v)); return true; }catch{ return false; } };
+
+/* ============ estado ============ */
+const S={view:'orcs',bases:{},docs:[],cur:null,sel:null,cache:new Map(),
+  q:{q:'',t:'C',pk:null}, pk:{}, insF:{t:'*',e:'*',q:''}, abc:'serv', exp:new Set(), modalR:null, saving:'', imp:null};
+
+/* ============ armazenamento das bases (IndexedDB, neste navegador) ============ */
+const IDB={ db:null,
+  open(){ return new Promise(res=>{ try{ const rq=indexedDB.open('orcalivre',1); rq.onupgradeneeded=()=>rq.result.createObjectStore('bases',{keyPath:'id'}); rq.onsuccess=()=>{this.db=rq.result;res(true)}; rq.onerror=()=>res(false); }catch{ res(false); } }); },
+  all(){ return new Promise(res=>{ if(!this.db) return res([]); try{ const rq=this.db.transaction('bases').objectStore('bases').getAll(); rq.onsuccess=()=>res(rq.result||[]); rq.onerror=()=>res([]); }catch{ res([]); } }); },
+  put(b){ return new Promise(res=>{ if(!this.db) return res(false); try{ const {_ix,...clean}=b; const tx=this.db.transaction('bases','readwrite'); tx.objectStore('bases').put(clean); tx.oncomplete=()=>res(true); tx.onerror=()=>res(false); }catch{ res(false); } }); },
+  del(id){ return new Promise(res=>{ if(!this.db) return res(false); try{ const tx=this.db.transaction('bases','readwrite'); tx.objectStore('bases').delete(id); tx.oncomplete=()=>res(true); tx.onerror=()=>res(false);}catch{ res(false);} }); }
+};
+
+/* ============ armazenamento dos orçamentos (nuvem do artefato ou navegador) ============ */
+const Store={ mode:'local', sb:null, user:null, q:{},
+  async init(){
+    const C=window.ORCALIVRE||{};
+    if(!(C.supabaseUrl&&C.supabaseAnonKey&&window.supabase)) return;
+    try{ this.sb=supabase.createClient(C.supabaseUrl,C.supabaseAnonKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+      const {data}=await this.sb.auth.getSession(); this.user=data.session?.user||null; if(this.user) this.mode='db';
+      this.sb.auth.onAuthStateChange((ev,ses)=>setTimeout(()=>onAuth(ev,ses),0)); }catch(e){ this.sb=null; }
+  },
+  tbl(){ return this.sb.from('orcalivre_docs'); },
+  async list(){
+    if(this.mode==='db'){ const {data,error}=await this.tbl().select('id,data').limit(5000); if(!error) return data.map(r=>({...r.data,id:r.id})); this.fallback(error); }
+    return lsGet('orcalivre.docs',[]);
+  },
+  fallback(e){ if(this.mode!=='db') return; this.mode='local'; renderCtx(); toast('Sem conexão com a sua conta. Salvando neste navegador até reconectar.'); },
+  localWrite(){ const ok=lsSet('orcalivre.docs',S.docs.filter(d=>!d.ex)); if(!ok) toast('Não foi possível salvar neste navegador.'); },
+  async put(doc){ const clean=JSON.parse(JSON.stringify(doc)); delete clean.ex;
+    const {error}=await this.tbl().upsert({user_id:this.user.id,id:doc.id,kind:doc.kind,data:clean,updated_at:new Date().toISOString()},{onConflict:'user_id,id'}); if(error) throw error; },
+  async save(doc){
+    const i=S.docs.findIndex(d=>d.id===doc.id); if(i<0) S.docs.push(doc); else S.docs[i]=doc;
+    if(this.mode==='db'){ const prev=this.q[doc.id]||Promise.resolve();
+      const p=prev.then(()=>this.put(doc)).catch(()=>new Promise(r=>setTimeout(r,1200)).then(()=>this.put(doc))).catch(e=>{ this.fallback(e); this.localWrite(); });
+      this.q[doc.id]=p; return p; }
+    this.localWrite();
+  },
+  async del(id){
+    S.docs=S.docs.filter(d=>d.id!==id);
+    if(this.mode==='db'){ await (this.q[id]||Promise.resolve()); const {error}=await this.tbl().delete().eq('id',id); if(error){ this.fallback(error); this.localWrite(); } return; }
+    this.localWrite();
+  }
+};
+async function onAuth(ev,ses){
+  if(ev==='PASSWORD_RECOVERY'){ Store.user=ses?.user||null; Store.mode='db'; newPassModal(); return; }
+  if(ev==='SIGNED_IN'){ const was=Store.user?.id; Store.user=ses.user; Store.mode='db'; if(was===ses.user.id&&S.docs.length) { renderCtx(); return; } await loadDocs(true); return; }
+  if(ev==='SIGNED_OUT'){ Store.user=null; Store.mode='local'; S.cur=null; await loadDocs(false); go('orcs'); }
+}
+async function loadDocs(migrar){
+  let docs=(await Store.list()).filter(d=>d&&d.kind);
+  if(migrar&&Store.mode==='db'){ const loc=lsGet('orcalivre.docs',[]).filter(d=>d&&d.kind&&!docs.some(x=>x.id===d.id));
+    if(loc.length){ S.docs=docs; for(const d of loc) await Store.save(d); docs=S.docs; lsSet('orcalivre.docs',[]); toast(`${loc.length} registro(s) deste navegador foram levados para a sua conta.`); } }
+  S.docs=docs; rebuildOwn(); S.saving='ok';
+  if(S.cur&&!S.cur.ex) S.cur=S.docs.find(d=>d.id===S.cur.id)||null;
+  render();
+}
+function authModal(mode='in'){ S.authMode=mode; modal(()=>{ const m=S.authMode;
+  const t={in:'Entrar',up:'Criar conta',reset:'Recuperar senha'}[m];
+  return dlg(`<h2 style="margin:0">${t}</h2><div class="note">${m==='up'?'Gratuito. Seus orçamentos ficam salvos na sua conta e acessíveis de qualquer computador.':m==='reset'?'Enviamos um link para você criar uma nova senha.':'Use o e-mail e a senha da sua conta OrçaLivre.'}</div>`,
+   `<form id="fAuth" class="stack" novalidate><label class="field"><span>E-mail</span><input name="email" type="email" autocomplete="email" autofocus required></label>
+    ${m!=='reset'?`<label class="field"><span>Senha</span><input name="senha" type="password" autocomplete="${m==='up'?'new-password':'current-password'}" required minlength="6"></label>`:''}
+    <div id="authMsg" class="note" role="status"></div></form>
+    <div class="note">${m==='in'?`Não tem conta? <button class="linkish" data-act="authMode" data-m="up">Criar conta</button> · <button class="linkish" data-act="authMode" data-m="reset">Esqueci a senha</button>`:`Já tem conta? <button class="linkish" data-act="authMode" data-m="in">Entrar</button>`}</div>`,
+   `<button class="btn" data-act="close">Cancelar</button><button class="btn primary" data-act="authGo">${t}</button>`); }); }
+function newPassModal(){ modal(()=>dlg('<h2 style="margin:0">Nova senha</h2>',`<form id="fPass" class="stack" novalidate><label class="field"><span>Nova senha (mínimo 6 caracteres)</span><input name="senha" type="password" autocomplete="new-password" autofocus minlength="6"></label><div id="authMsg" class="note" role="status"></div></form>`,
+  `<button class="btn primary" data-act="passGo">Salvar nova senha</button>`)); }
+async function authGo(){ const f=readForm('#fAuth'), msg=$('#authMsg'), m=S.authMode, sb=Store.sb; const say=t=>{ if(msg) msg.textContent=t; };
+  if(!sb){ say('O login não está configurado neste site.'); return; }
+  if(!/\S+@\S+\.\S+/.test(f.email||'')){ say('Informe um e-mail válido.'); return; }
+  if(m!=='reset'&&(f.senha||'').length<6){ say('A senha precisa ter pelo menos 6 caracteres.'); return; }
+  say('Aguarde…'); const back=location.origin+location.pathname;
+  let r;
+  if(m==='in') r=await sb.auth.signInWithPassword({email:f.email,password:f.senha});
+  else if(m==='up') r=await sb.auth.signUp({email:f.email,password:f.senha,options:{emailRedirectTo:back}});
+  else r=await sb.auth.resetPasswordForEmail(f.email,{redirectTo:back});
+  if(r.error){ const e=r.error.message||''; say(/Invalid login/i.test(e)?'E-mail ou senha incorretos.':/already registered/i.test(e)?'Este e-mail já tem conta. Use “Entrar”.':/confirm/i.test(e)?'Confirme seu e-mail pelo link que enviamos antes de entrar.':/rate|limit/i.test(e)?'Muitas tentativas. Aguarde alguns minutos e tente de novo.':'Não foi possível concluir: '+e); return; }
+  if(m==='reset'){ say('Pronto. Confira seu e-mail e siga o link para criar a nova senha.'); return; }
+  if(m==='up'&&!r.data.session){ say('Conta criada. Enviamos um link de confirmação para o seu e-mail; depois é só entrar.'); return; }
+  closeModal(); toast(m==='up'?'Conta criada. Bem-vindo ao OrçaLivre!':'Você entrou na sua conta.'); }
+async function passGo(){ const f=readForm('#fPass'), msg=$('#authMsg'); if((f.senha||'').length<6){ msg.textContent='A senha precisa ter pelo menos 6 caracteres.'; return; }
+  const {error}=await Store.sb.auth.updateUser({password:f.senha}); if(error){ msg.textContent='Não foi possível salvar: '+error.message; return; } closeModal(); toast('Senha alterada.'); }
+
+/* ============ bases de referência ============ */
+const REG={SD:'Não desonerado',CD:'Desonerado',SE:'Sem encargos complementares',N:'Não desonerado',D:'Desonerado'};
+const REGS={SD:'ND',CD:'DES',SE:'S/E',N:'',D:'DES'};
+function baseShort(b){ if(!b) return '—'; if(b.id==='PROPRIA') return 'PRÓPRIA'; if(b.pub&&b.fonte==='SINAPI') return `SINAPI ${b.uf} ${REGS[b.regime]}`; if(b.pub) return 'CDHU'; return `${b.fonte||'BASE'}${b.uf?' '+b.uf:''}`; }
+function baseLong(b){ if(!b) return 'Base não carregada'; if(b.id==='PROPRIA') return b.nome; if(b.pub&&b.fonte==='CDHU') return `CDHU · boletim ${b.ver} · ${fmtMes(b.data)} · SP`; return `${b.fonte||''}${b.uf?' · '+b.uf:''} · ${fmtMes(b.data)} · ${REG[b.regime]||'Não desonerado'}`; }
+function labelOf(id){ if(S.bases[id]) return baseLong(S.bases[id]); const p=parseId(id); if(p&&p.src==='SINAPI') return `SINAPI · ${p.uf} · ${fmtMes(p.mes)} · ${REG[p.reg]}`; if(p&&p.src==='CDHU') return 'CDHU · SP'; return 'Base não carregada'; }
+
+/* ============ bases públicas incorporadas (SINAPI 27 UFs e CDHU) ============ */
+const PUB={man:null,cat:{},px:{},pend:{}};
+async function getJSON(u){ const r=await fetch(u); if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); }
+function parseId(id){ const p=String(id||'').split(':'); if(p[0]==='SINAPI'&&p.length===4) return {src:'SINAPI',mes:p[1],uf:p[2],reg:p[3]}; if(p[0]==='CDHU') return {src:'CDHU',ver:p[1]||'202'}; return null; }
+function latestMes(){ return PUB.man?.sinapi?.meses?.[0]||'2026-09'; }
+function defPk(){ return {src:'SINAPI',mes:latestMes(),uf:'SP',reg:'SD'}; }
+function pkFromId(id){ const p=parseId(id); if(p&&p.src==='SINAPI') return {src:'SINAPI',mes:p.mes,uf:p.uf,reg:p.reg}; if(p&&p.src==='CDHU') return {...defPk(),src:'CDHU'}; if(id&&S.bases[id]) return {...defPk(),src:id}; return defPk(); }
+function pkId(pk){ if(!pk) pk=defPk(); if(pk.src==='SINAPI') return `SINAPI:${pk.mes}:${pk.uf}:${pk.reg}`; if(pk.src==='CDHU') return 'CDHU:'+(PUB.man?.cdhu?.versao||202); return pk.src; }
+function catItems(cat,i,iCol){ cat._it=cat._it||[]; if(!cat._it[i]){ const f=cat.comp[i][iCol]||[], out=[]; for(let j=0;j<f.length;j+=3) out.push({t:f[j],c:f[j+1],q:f[j+2]}); cat._it[i]=out; } return cat._it[i]; }
+function ensureBase(id){
+  if(!id) return Promise.resolve(null); if(S.bases[id]) return Promise.resolve(S.bases[id]);
+  const p=parseId(id); if(!p) return Promise.resolve(null); if(PUB.pend[id]) return PUB.pend[id];
+  return PUB.pend[id]=(async()=>{ try{
+    let b;
+    if(p.src==='SINAPI'){
+      const cat=await (PUB.cat[p.mes]||(PUB.cat[p.mes]=getJSON(`dados/sinapi/${p.mes}/cat.json`).catch(e=>{ delete PUB.cat[p.mes]; throw e; })));
+      const pk=p.mes+'|'+p.uf; const px=await (PUB.px[pk]||(PUB.px[pk]=getJSON(`dados/sinapi/${p.mes}/${p.uf}.json`).catch(e=>{ delete PUB.px[pk]; throw e; })));
+      const R=px[p.reg]; if(!R) return null; const att=new Set(R.a||[]);
+      b={id,pub:true,fonte:'SINAPI',uf:p.uf,data:p.mes,regime:p.reg,nome:`SINAPI ${p.uf} ${fmtMes(p.mes)}`,ins:{},comps:{}};
+      cat.ins.forEach((r,i)=>{ b.ins[r[0]]={d:r[1],u:r[2],t:r[3],p:R.i[i],as:att.has(i)?1:0}; });
+      cat.comp.forEach((r,i)=>{ b.comps[r[0]]={d:r[1],u:r[2],g:cat.g[r[3]],ct:cat.ct[r[4]]||'',c:R.c[i],it:catItems(cat,i,5)}; });
+    } else {
+      const cat=await (PUB.cat.cdhu||(PUB.cat.cdhu=getJSON(`dados/cdhu/${p.ver}/cat.json`).catch(e=>{ delete PUB.cat.cdhu; throw e; })));
+      b={id,pub:true,fonte:'CDHU',uf:'SP',ver:cat.versao,data:cat.m,regime:'N',nome:`CDHU ${cat.versao}`,ins:{},comps:{}};
+      cat.ins.forEach(r=>{ b.ins[r[0]]={d:r[1],u:r[2],t:r[3],p:r[4]}; });
+      cat.comp.forEach((r,i)=>{ b.comps[r[0]]={d:r[1],u:r[2],g:cat.g[r[3]],c:r[4],it:catItems(cat,i,5)}; });
+    }
+    S.bases[id]=b; S.cache.clear(); return b;
+  }catch(e){ return null; } finally{ delete PUB.pend[id]; } })();
+}
+function budgetBaseIds(o){ const s=new Set([o.base]); for(const it of o.items) if(it.k==='V'&&it.b) s.add(it.b); for(const d of S.docs) if(d.kind==='cpu') for(const x of d.it||[]) if(x.b) s.add(x.b); return [...s].filter(Boolean); }
+async function ensureBudget(o){ const ids=budgetBaseIds(o).filter(id=>!S.bases[id]&&parseId(id)); if(!ids.length) return; S.loadingB=true; renderCtx(); await Promise.all(ids.map(ensureBase)); S.loadingB=false; render(); }
+function refInfo(bid,t,c){ const b=S.bases[bid]; if(!b) return null; return t==='I'?b.ins[c]:b.comps[c]; }
+function compUnit(bid,code,depth=0){
+  const k=bid+'|'+code; if(S.cache.has(k)) return S.cache.get(k);
+  const c=S.bases[bid]?.comps[code]; if(!c) return null;
+  let v;
+  if(c.c!=null&&isFinite(c.c)) v=c.c;
+  else{ if(depth>25) return 0; v=0; for(const it of c.it||[]) v+=(itemUnit(it.b||bid,it,depth)||0)*it.q; }
+  S.cache.set(k,v); return v;
+}
+function itemUnit(bid,it,depth=0){ if(it.t==='I') return S.bases[bid]?.ins[it.c]?.p??null; return compUnit(bid,it.c,depth+1); }
+function refUnit(bid,t,c){ return t==='I'?(S.bases[bid]?.ins[c]?.p??null):compUnit(bid,c); }
+function explode(bid,code,qty,acc,depth){
+  const c=S.bases[bid]?.comps[code]; if(!c||!(c.it&&c.it.length)||depth>25) return false;
+  for(const it of c.it){ const b=it.b||bid; if(it.t==='I'){ const k=b+'|'+it.c; acc.set(k,(acc.get(k)||0)+qty*it.q); } else if(!explode(b,it.c,qty*it.q,acc,depth+1)){ const k='#'+b+'|'+it.c; acc.set(k,(acc.get(k)||0)+qty*it.q); } }
+  return true;
+}
+function getIdx(b,kind){ b._ix=b._ix||{}; if(!b._ix[kind]){ const src=kind==='C'?b.comps:b.ins; b._ix[kind]=Object.keys(src).map(c=>({c,k:norm(c+' '+(src[c].d||''))})); } return b._ix[kind]; }
+function search(q,bf,tipo,limit=150){
+  const terms=norm(q).split(/\s+/).filter(Boolean), out=[];
+  for(const b of Object.values(S.bases)){ if(b.id!==bf) continue;
+    for(const kind of (tipo==='*'?['C','I']:[tipo])){ for(const e of getIdx(b,kind)){ if(terms.every(t=>e.k.includes(t))){ out.push({b:b.id,t:kind,c:e.c}); if(out.length>=limit) return out; } } } }
+  return out;
+}
+function typeOf(cls,u,d){
+  const x=norm(cls); if(/MAO DE OBRA|MAO-DE-OBRA/.test(x)) return 'MO'; if(/EQUIP/.test(x)) return 'EQ'; if(/MATERIA/.test(x)) return 'MAT'; if(/SERVI/.test(x)) return 'SV'; if(/TAXA|ENCARG/.test(x)) return 'OUT';
+  const U=norm(u).trim(), D=norm(d);
+  if(/^CH[PI]$/.test(U)) return 'EQ';
+  if(U==='H'||U==='MES'){ if(/(CAMINHAO|BETONEIRA|ESCAVADEIRA|TRATOR|ROLO |GUINDA|COMPRESSOR|VIBRADOR|BOMBA|RETRO|MOTONIVEL|CARREGADEIRA|GERADOR|PERFURATRIZ|MARTELETE|SERRA |EQUIPAMENTO|MAQUINA|GRUA|ELEVADOR|ANDAIME|LOCACAO|USINA|VEICULO|CAMIONETE)/.test(D)) return 'EQ'; return 'MO'; }
+  return 'MAT';
+}
+function rebuildOwn(){
+  const b={id:'PROPRIA',nome:'Composições e insumos próprios',fonte:'PRÓPRIA',builtin:true,ins:{},comps:{}};
+  for(const d of S.docs){ if(d.kind==='ins') b.ins[d.c]={d:d.d,u:d.u,p:num(d.p)||0,t:d.t||'MAT',fonteTxt:d.fonte,docId:d.id}; if(d.kind==='cpu') b.comps[d.c]={d:d.d,u:d.u,g:d.g,c:null,it:d.it||[],docId:d.id}; }
+  S.bases.PROPRIA=b; S.cache.clear();
+}
+
+/* orçamento de exemplo com composições reais do SINAPI */
+const EX_SPEC=[['E','SERVIÇOS PRELIMINARES'],['V','99059',46],['M','LIGAÇÃO PROVISÓRIA DE ÁGUA E ENERGIA','VB',1,3500],
+  ['E','INFRAESTRUTURA'],['V','90100',18],['V','92762',650],['V','103675',12],
+  ['E','SUPRAESTRUTURA'],['V','92411',140],['V','92762',1100],['V','103675',14],
+  ['E','ALVENARIA E REVESTIMENTOS'],['S','ALVENARIA'],['V','103328',310],['S','REVESTIMENTO DE PAREDES'],['V','87879',620],['V','87529',620],['S','PISOS'],['V','87640',120],['V','87263',120],
+  ['E','COBERTURA'],['V','92539',145],['V','94442',145],
+  ['E','INSTALAÇÕES'],['S','HIDRÁULICA'],['V','89402',60],['S','ELÉTRICA'],['V','91854',180],['V','91996',48],
+  ['E','PINTURA'],['V','88497',620],['V','88489',620]];
+function exampleBudget(){
+  const bid=pkId(defPk()), b=S.bases[bid]; if(!b) return null;
+  const items=[];
+  for(const s of EX_SPEC){ if(s[0]==='E') items.push({id:uid(),k:'E',d:s[1]}); else if(s[0]==='S') items.push({id:uid(),k:'S',d:s[1]});
+    else if(s[0]==='M') items.push({id:uid(),k:'V',t:'M',b:'',bl:'COTAÇÃO',c:'',d:s[1],u:s[2],q:s[3],cu:s[4]});
+    else { const i=b.comps[s[1]]; if(!i) continue; items.push({id:uid(),k:'V',t:'C',b:bid,bl:baseShort(b),c:s[1],d:i.d,u:i.u,q:s[2],cu:r2(compUnit(bid,s[1])||0)}); } }
+  const o=newBudget({nome:'Residência térrea 120 m²',cliente:'Cliente exemplo',local:'São Paulo/SP',dataBase:latestMes(),base:bid,area:120,prazo:6});
+  o.id='exemplo'; o.ex=true; o.items=items; o.crono=stagger(o); return o;
+}
+function newBudget(f){ const base=f.base||pkId(defPk()); const des=parseId(base)?.reg==='CD';
+  return {id:uid(),kind:'orc',nome:f.nome||'Novo orçamento',cliente:f.cliente||'',local:f.local||'',dataBase:f.dataBase||'',base,area:num(f.area)||0,cub:0,prazo:num(f.prazo)||6,
+  bdi:{ac:4,s:0.4,r:1.27,g:0.4,df:1.23,l:7.4,pis:0.65,cofins:3,iss:2,cprb:des?4.5:0,manual:false,v:25},bdi2:15,abcA:80,abcB:95,crono:{},items:[],upd:Date.now()}; }
+
+/* ============ cálculo do orçamento ============ */
+function bdiOf(o){ const b=o.bdi||{}; if(b.manual) return (num(b.v)||0)/100; const f=k=>(num(b[k])||0)/100; const I=f('pis')+f('cofins')+f('iss')+f('cprb'); if(I>=1) return 0; return ((1+f('ac')+f('s')+f('r')+f('g'))*(1+f('df'))*(1+f('l')))/(1-I)-1; }
+function calc(o){
+  const bdi=bdiOf(o), b2=(num(o.bdi2)||0)/100, rows=[], grp={}, tot={cd:0,pv:0};
+  let e=0,s=0,v=0,cE=null,cS=null;
+  for(const it of o.items){
+    if(it.k==='E'){ e++; s=0; v=0; cE=it; cS=null; grp[it.id]={cd:0,pv:0,n:0}; rows.push({it,n:String(e)}); }
+    else if(it.k==='S'){ s++; v=0; cS=it; grp[it.id]={cd:0,pv:0,n:0}; rows.push({it,n:`${e}.${s}`,eId:cE?.id}); }
+    else{ v++; const n=cS?`${e}.${s}.${v}`:`${e}.${v}`; const cu=num(it.cu)||0, q=num(it.q)||0, pu=r2(cu*(1+(it.bd2?b2:bdi))), tc=r2(q*cu), tp=r2(q*pu);
+      tot.cd+=tc; tot.pv+=tp; for(const g of [cE,cS]) if(g&&grp[g.id]){ grp[g.id].cd+=tc; grp[g.id].pv+=tp; grp[g.id].n++; }
+      rows.push({it,n,cu,q,pu,tc,tp,eId:cE?.id,sId:cS?.id}); }
+  }
+  tot.cd=r2(tot.cd); tot.pv=r2(tot.pv); tot.bdiV=r2(tot.pv-tot.cd);
+  return {rows,grp,tot,bdi,b2};
+}
+function explodeBudget(o,eF='*'){
+  const {rows}=calc(o), acc=new Map(), manual=[];
+  for(const r of rows){ if(r.it.k!=='V') continue; if(eF!=='*'&&r.eId!==eF) continue; const it=r.it;
+    if(it.t==='I'&&S.bases[it.b]?.ins[it.c]){ const k=it.b+'|'+it.c; acc.set(k,(acc.get(k)||0)+r.q); }
+    else if(it.t==='C'&&explode(it.b,it.c,r.q,acc,0)){} else manual.push(r); }
+  const list=[];
+  for(const [k,q] of acc){ if(k[0]==='#'){ const [b,...cc]=k.slice(1).split('|'); const c=cc.join('|'); const info=S.bases[b]?.comps[c]; const p=compUnit(b,c)||0; list.push({b,c,d:(info?.d||c)+' (composição sem analítico)',u:info?.u||'',t:'OUT',q,p,v:q*p}); continue; }
+    const [b,...cc]=k.split('|'); const c=cc.join('|'); const i=S.bases[b]?.ins[c]; const p=i?.p||0; list.push({b,c,d:i?.d||'(insumo não encontrado na base)',u:i?.u||'',t:i?.t||'OUT',q,p,v:q*p}); }
+  for(const r of manual) list.push({b:r.it.b||'',bl:r.it.bl,c:r.it.c||'—',d:r.it.d+(r.it.t==='M'?' (serviço sem composição)':' (base não carregada)'),u:r.it.u,t:'OUT',q:r.q,p:r.cu,v:r.tc,manual:true});
+  list.sort((a,b)=>b.v-a.v); return {list,manual:manual.length};
+}
+function abcClass(list,A,B){ const total=list.reduce((s,x)=>s+x.v,0)||1; let acc=0; return list.map(x=>{ const before=acc/total*100; acc+=x.v; return {...x,pct:x.v/total*100,cum:acc/total*100,cl:before<A?'A':before<B?'B':'C'}; }); }
+function abcServ(o){ const {rows}=calc(o); const list=rows.filter(r=>r.it.k==='V').map(r=>({n:r.n,b:r.it.b,bl:r.it.bl,c:r.it.c,d:r.it.d,u:r.it.u,q:r.q,p:r.pu,v:r.tp})).sort((a,b)=>b.v-a.v); return abcClass(list,num(o.abcA)||80,num(o.abcB)||95); }
+function etapas(o){ return o.items.filter(i=>i.k==='E'); }
+function stagger(o){ const es=etapas(o), N=Math.max(1,Math.round(num(o.prazo)||1)), cr={}; es.forEach((e,i)=>{ const st=Math.min(N-1,Math.floor(i*N/es.length)); const len=Math.min(N-st,Math.max(1,Math.ceil(N/es.length)+1)); const arr=Array(N).fill(0); let rest=100; for(let m=0;m<len;m++){ const v=m===len-1?rest:r2(100/len); arr[st+m]=v; rest=r2(rest-v); } cr[e.id]=arr; }); return cr; }
+
+/* ============ mutação e salvamento ============ */
+function ensureOwn(){ const o=S.cur; if(!o||!o.ex) return; const c=JSON.parse(JSON.stringify(o)); c.id=uid(); c.ex=false; c.nome=o.nome+' (cópia)'; S.cur=c; S.docs.push(c); lsSet('orcalivre.last',c.id); toast('O exemplo virou um orçamento seu: "'+c.nome+'".'); }
+function mutate(fn,{rerender=true}={}){ if(!S.cur) return; ensureOwn(); fn(S.cur); S.cur.upd=Date.now(); scheduleSave(); if(rerender) render(); }
+function scheduleSave(){ S.saving='pend'; renderCtx(); clearTimeout(scheduleSave._t); const o=S.cur; scheduleSave._t=setTimeout(async()=>{ await Store.save(o); S.saving='ok'; renderCtx(); },650); }
+function openBudget(id){ const o=id==='exemplo'?(S.example=S.example||exampleBudget()):S.docs.find(d=>d.id===id); if(!o) return; S.cur=o; S.sel=null; S.pk.plan=pkFromId(o.base); lsSet('orcalivre.last',id); go('plan'); ensureBudget(o); }
+
+/* ============ estrutura (inserir, mover, excluir) ============ */
+const endE=(it,i)=>{ let j=i+1; while(j<it.length&&it[j].k!=='E') j++; return j; };
+const endS=(it,i)=>{ let j=i+1; while(j<it.length&&it[j].k==='V') j++; return j; };
+function insertItem(o,n){
+  const it=o.items, si=it.findIndex(x=>x.id===S.sel);
+  if(n.k!=='E'&&!it.some(x=>x.k==='E')) it.push({id:uid(),k:'E',d:'NOVA ETAPA'});
+  if(n.k==='E'||si<0){ it.push(n); S.sel=n.id; return; }
+  const sel=it[si]; let pos;
+  if(n.k==='S'){ let ei=si; while(ei>0&&it[ei].k!=='E') ei--; pos=endE(it,ei); }
+  else{ if(sel.k==='V') pos=si+1; else if(sel.k==='S') pos=endS(it,si); else{ pos=si+1; while(pos<it.length&&it[pos].k==='V') pos++; } }
+  it.splice(pos,0,n); S.sel=n.id;
+}
+function blockEnd(it,i){ return it[i].k==='V'?i+1:it[i].k==='S'?endS(it,i):endE(it,i); }
+function moveItem(o,id,dir){
+  const it=o.items, i=it.findIndex(x=>x.id===id); if(i<0) return; const k=it[i].k;
+  if(k==='V'){ const j=i+dir; if(j<1||j>=it.length) return; [it[i],it[j]]=[it[j],it[i]]; return; }
+  const a=i,b=blockEnd(it,i);
+  if(dir<0){ let p=a-1; while(p>=0&&it[p].k!==k&&!(k==='S'&&it[p].k==='E')) p--; if(p<0||it[p].k!==k) return; const seg=it.splice(a,b-a); it.splice(p,0,...seg); }
+  else{ if(b>=it.length||it[b].k!==k) return; const c=blockEnd(it,b); const seg=it.splice(b,c-b); it.splice(a,0,...seg); }
+}
+function delItem(o,id){ const it=o.items, i=it.findIndex(x=>x.id===id); if(i<0) return; const b=blockEnd(it,i); it.splice(i,b-i); if(o.crono) delete o.crono[id]; }
+
+/* ============ navegação ============ */
+const NAV=[['g','Orçamento'],['orcs','Orçamentos','01'],['plan','Planilha','02'],['ins','Insumos','03'],['abc','Curva ABC','04'],['ind','Indicadores','05'],['crono','Cronograma','06'],['bdi','BDI','07'],['rel','Relatórios','08'],['g','Referências'],['bases','Bases de preços','09']];
+function go(v){ S.view=v; render(); window.scrollTo(0,0); }
+function renderSide(){ $('#side').innerHTML=NAV.map(([k,l,n])=>k==='g'?`<div class="grp">${l}</div>`:`<button class="nav ${S.view===k?'on':''}" data-act="go" data-v="${k}"><span class="k">${n}</span>${l}</button>`).join(''); }
+function renderCtx(){
+  const o=S.cur, b=o&&S.bases[o.base];
+  const acc=Store.user?`<span class="pill" title="${esc(Store.user.email||'')}">${esc((Store.user.email||'').split('@')[0])}</span><button class="btn sm ghost" data-act="sair">Sair</button>`:(Store.sb?`<button class="btn sm primary" data-act="entrar">Entrar / criar conta</button>`:'');
+  const st=(Store.mode==='db'?(S.saving==='pend'?'<span class="pill">Salvando…</span>':'<span class="pill ok">Salvo na sua conta</span>'):'<span class="pill warn" title="Os dados ficam só neste navegador. Entre na sua conta para salvá-los na nuvem.">Salvo neste navegador</span>')+`<span style="margin-left:auto;display:flex;gap:6px;align-items:center">${acc}</span>`;
+  $('#ctx').innerHTML=o?`<button class="linkish b" data-act="go" data-v="plan" style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:300px">${esc(o.nome)}</button>
+    <span class="pill">${esc(labelOf(o.base))}</span>${o.ex?'<span class="pill warn">Exemplo</span>':''}${st}`:st;
+}
+function render(){ renderSide(); renderCtx(); const V=VIEWS[S.view]||VIEWS.orcs; const needs=!['orcs','bases'].includes(S.view);
+  $('#main').innerHTML=(needs&&!S.cur)?`<div class="empty"><b>Nenhum orçamento aberto</b>Abra ou crie um orçamento para usar este módulo.<div style="margin-top:12px"><button class="btn primary" data-act="go" data-v="orcs">Ver orçamentos</button></div></div>`:V(); }
+
+/* ============ telas ============ */
+const VIEWS={};
+VIEWS.orcs=()=>{
+  const list=S.docs.filter(d=>d.kind==='orc').sort((a,b)=>(b.upd||0)-(a.upd||0));
+  const card=(o,ex)=>{ const {tot,rows}=calc(o); const n=rows.filter(r=>r.it.k==='V').length;
+    return `<div class="card ${S.cur&&S.cur.id===o.id?'on':''}"><div class="eyebrow">${ex?'Exemplo · '+esc(labelOf(o.base)):esc(o.cliente||'Sem cliente')}</div><div class="nm">${esc(o.nome)}</div>
+    <div class="meta">${esc(o.local||'')} · data-base ${esc(fmtMes(o.dataBase))} · ${n} serviços</div><div class="tv">R$ ${R(tot.pv)}</div>
+    <div class="row"><button class="btn sm primary" data-act="open" data-id="${o.id}">Abrir</button><button class="btn sm" data-act="dupOrc" data-id="${o.id}">Duplicar</button>${ex?'':`<button class="btn sm danger" data-act="delOrc" data-id="${o.id}">Excluir</button>`}</div></div>`; };
+  const ex=S.example=S.example||exampleBudget(); if(!ex) ensureBase(pkId(defPk())).then(b=>{ if(b&&S.view==='orcs') render(); });
+  return `<div class="head"><div><h1>Orçamentos</h1><div class="sub">Planilhas com etapas, subetapas e serviços ligados às composições das bases de preços.</div></div>
+  <div class="actions"><label class="btn">Importar backup (.json)<input type="file" id="impJson" accept=".json,application/json" hidden></label><button class="btn primary" data-act="newOrc">Novo orçamento</button></div></div>
+  ${Store.mode==='local'?`<div class="banner"><b>Você não entrou na sua conta.</b> Os orçamentos ficam só neste navegador.${Store.sb?' <button class="btn sm" data-act="entrar">Entrar ou criar conta grátis</button>':''}</div>`:''}
+  <div class="cards">${list.map(o=>card(o,false)).join('')}${ex?card(ex,true):'<div class="card"><div class="eyebrow">Exemplo</div><div class="nm">Residência térrea 120 m²</div><div class="meta">Carregando o SINAPI…</div></div>'}</div>
+  ${list.length?'':'<p class="note" style="margin-top:14px">O orçamento de exemplo usa composições reais do SINAPI. Ao editá-lo, uma cópia é criada nos seus orçamentos.</p>'}`;
+};
+
+VIEWS.plan=()=>{
+  const o=S.cur, {rows,grp,tot,bdi}=calc(o);
+  S.pk.plan=S.pk.plan||pkFromId(o.base); const tgt=pkId(S.pk.plan), changed=tgt!==o.base;
+  const peso=v=>tot.pv?v/tot.pv*100:0;
+  const body=rows.map(r=>{ const it=r.it, sel=S.sel===it.id?'sel':'';
+    const acts=`<button class="ib" data-act="mv" data-id="${it.id}" data-d="-1" title="Mover para cima" aria-label="Mover para cima">↑</button><button class="ib" data-act="mv" data-id="${it.id}" data-d="1" title="Mover para baixo" aria-label="Mover para baixo">↓</button><button class="ib" data-act="del" data-id="${it.id}" title="Excluir" aria-label="Excluir">✕</button>`;
+    if(it.k!=='V'){ const g=grp[it.id]||{pv:0}; return `<tr class="r-${it.k.toLowerCase()} ${sel}" data-row="${it.id}"><td class="n">${r.n}</td><td colspan="7"><input class="cell h" data-d="${it.id}" value="${esc(it.d)}" aria-label="Nome da ${it.k==='E'?'etapa':'subetapa'}"></td><td class="r">${R(g.pv)}</td><td class="r">${P(peso(g.pv))}</td><td class="act">${acts}</td></tr>`; }
+    const man=it.t==='M';
+    return `<tr class="r-v ${sel}" data-row="${it.id}"><td class="n">${r.n}</td>
+      <td class="mono">${man?`<input class="cell" data-fc="${it.id}" value="${esc(it.c)}" style="width:80px" aria-label="Código">`:`<button class="linkish mono" data-act="comp" data-b="${esc(it.b)}" data-t="${it.t}" data-c="${esc(it.c)}">${esc(it.c)}</button>`}</td>
+      <td><span class="tag">${esc(it.bl||baseShort(S.bases[it.b]))}</span></td>
+      <td class="desc">${man?`<input class="cell" data-fd="${it.id}" value="${esc(it.d)}" aria-label="Descrição">`:esc(it.d)}</td>
+      <td>${man?`<input class="cell" data-fu="${it.id}" value="${esc(it.u)}" style="width:52px" aria-label="Unidade">`:esc(it.u)}</td>
+      <td><input class="cell q" data-q="${it.id}" value="${Q(r.q)}" inputmode="decimal" aria-label="Quantidade"></td>
+      <td class="r">${man?`<input class="cell q" data-cu="${it.id}" value="${R(r.cu)}" inputmode="decimal" aria-label="Custo unitário">`:R(r.cu)}</td>
+      <td class="r">${R(r.pu)}</td><td class="r b">${R(r.tp)}</td><td class="r muted">${P(peso(r.tp))}</td>
+      <td class="act"><button class="ib ${it.bd2?'on':''}" data-act="bd2" data-id="${it.id}" title="${it.bd2?'Usando BDI diferenciado':'Usar BDI diferenciado'}" aria-label="BDI diferenciado">B₂</button>${acts}</td></tr>`; }).join('');
+  return `<div class="head"><div><div class="eyebrow">Planilha orçamentária</div><h1>${esc(o.nome)}</h1><div class="sub">${esc(o.cliente||'')}${o.local?' · '+esc(o.local):''}${S.loadingB?' · carregando base…':''}</div></div>
+  <div class="actions"><button class="btn" data-act="go" data-v="rel">Exportar</button></div></div>
+  <div class="panel" style="margin-bottom:14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span class="eyebrow">Referência de preços</span>${picker('plan',false)}
+    <button class="btn ${changed?'primary':''}" data-act="applyRef">${changed?'Aplicar ao orçamento':'Atualizar preços'}</button><span class="note">${changed?'Reprecifica todos os serviços com a referência escolhida.':esc(labelOf(o.base))}</span></div>
+  ${o.ex?'<div class="banner"><b>Exemplo.</b> Ao fazer qualquer alteração, uma cópia editável é criada nos seus orçamentos.</div>':''}
+  <details class="panel" style="margin-bottom:14px" ${o.items.length?'':'open'}><summary class="b" style="cursor:pointer">Dados da obra</summary>
+    <div class="grid" style="margin-top:12px">
+      <label class="field w2"><span>Nome do orçamento</span><input data-bind="nome" value="${esc(o.nome)}"></label>
+      <label class="field"><span>Cliente</span><input data-bind="cliente" value="${esc(o.cliente)}"></label>
+      <label class="field"><span>Local</span><input data-bind="local" value="${esc(o.local)}"></label>
+      <label class="field"><span>Data-base</span><input type="month" data-bind="dataBase" value="${esc(o.dataBase)}"></label>
+      <label class="field"><span>Área construída (m²)</span><input data-bind="area" data-num value="${o.area?Q(o.area):''}" inputmode="decimal"></label>
+      <label class="field"><span>Prazo (meses)</span><input data-bind="prazo" data-num value="${o.prazo||''}" inputmode="numeric"></label>
+    </div></details>
+  <div class="panel flush">
+    <div class="toolbar"><button class="btn sm" data-act="addE">+ Etapa</button><button class="btn sm" data-act="addS">+ Subetapa</button><span class="sep"></span>
+      <button class="btn sm primary" data-act="addV">+ Serviço da base</button><button class="btn sm" data-act="addM">+ Serviço sem composição</button>
+      <span class="note" style="margin-left:auto">Itens são inseridos abaixo da linha selecionada.</span></div>
+    ${o.items.length?`<div class="scroll"><table class="t"><thead><tr><th>Item</th><th>Código</th><th>Base</th><th>Descrição</th><th>Und</th><th class="r">Quant.</th><th class="r">Custo unit.</th><th class="r">Preço unit.</th><th class="r">Total</th><th class="r">Peso</th><th></th></tr></thead><tbody>${body}</tbody></table></div>`
+      :`<div class="empty"><b>Planilha vazia</b>Comece criando a primeira etapa (ex.: SERVIÇOS PRELIMINARES) e adicione serviços da base.</div>`}
+    <div class="sumbar"><div><div class="eyebrow">Custo direto</div><div class="v">R$ ${R(tot.cd)}</div></div><div><div class="eyebrow">BDI ${P(bdi*100)}</div><div class="v">R$ ${R(tot.bdiV)}</div></div>
+      <div class="big"><div class="eyebrow">Preço total</div><div class="v">R$ ${R(tot.pv)}</div></div>${o.area?`<div><div class="eyebrow">Preço por m²</div><div class="v">R$ ${R(tot.pv/o.area)}</div></div>`:''}</div>
+  </div>`;
+};
+
+VIEWS.ins=()=>{
+  const o=S.cur, F=S.insF; const {list,manual}=explodeBudget(o,F.e); const tq=norm(F.q).split(/\s+/).filter(Boolean);
+  const vis=list.filter(x=>(F.t==='*'||x.t===F.t)&&tq.every(t=>norm(x.c+' '+x.d).includes(t)));
+  const total=list.reduce((s,x)=>s+x.v,0), vt=vis.reduce((s,x)=>s+x.v,0);
+  const byT={}; for(const x of list) byT[x.t]=(byT[x.t]||0)+x.v;
+  const eopts=etapas(o).map(e=>`<option value="${e.id}" ${F.e===e.id?'selected':''}>${esc(e.d)}</option>`).join('');
+  return `<div class="head"><div><div class="eyebrow">Extração pelas composições unitárias</div><h1>Insumos do orçamento</h1><div class="sub">Quantitativo de materiais, mão de obra e equipamentos obtido decompondo cada serviço até o insumo (inclui composições auxiliares).</div></div>
+   <div class="actions"><button class="btn" data-act="copy" data-r="ins">Copiar tabela</button><button class="btn" data-act="exp" data-r="ins" data-f="xlsx">Excel</button><button class="btn" data-act="exp" data-r="ins" data-f="pdf">PDF</button></div></div>
+  <div class="kpis" style="margin-bottom:14px">${['MAT','MO','EQ','OUT'].map(t=>`<div class="kpi"><div class="l">${TL[t]}</div><div class="v">R$ ${R(byT[t]||0)}</div><div class="s">${P(total?(byT[t]||0)/total*100:0)} do custo direto</div></div>`).join('')}</div>
+  ${manual?`<div class="banner"><b>${manual} serviço(s)</b> sem composição disponível entram como uma linha única (tipo Outros).</div>`:''}
+  <div class="panel flush"><div class="toolbar">
+    <select data-set="insF.t" aria-label="Tipo"><option value="*">Todos os tipos</option>${['MAT','MO','EQ','OUT'].map(t=>`<option value="${t}" ${F.t===t?'selected':''}>${TL[t]}</option>`).join('')}</select>
+    <select data-set="insF.e" aria-label="Etapa"><option value="*">Todas as etapas</option>${eopts}</select>
+    <input data-live="insF.q" placeholder="Filtrar por código ou descrição" value="${esc(F.q)}" style="flex:1;min-width:180px">
+    <span class="note">${vis.length} insumos · R$ ${R(vt)}</span></div>
+  <div class="scroll" id="insTbl">${insTable(vis,total)}</div></div>`;
+};
+function insTable(vis,total){ if(!vis.length) return '<div class="empty"><b>Nenhum insumo</b>Adicione serviços com composição ou ajuste os filtros.</div>';
+  return `<table class="t"><thead><tr><th>Código</th><th>Base</th><th>Descrição</th><th>Tipo</th><th>Und</th><th class="r">Quantidade</th><th class="r">Preço unit.</th><th class="r">Total</th><th class="r">%</th></tr></thead><tbody>
+  ${vis.slice(0,1500).map(x=>`<tr><td class="mono">${esc(x.c)}</td><td><span class="tag">${esc(x.bl||baseShort(S.bases[x.b]))}</span></td><td class="desc">${esc(x.d)}</td><td><span class="tt tt-${x.t}">${TS[x.t]}</span></td><td>${esc(x.u)}</td><td class="r">${Q(x.q)}</td><td class="r">${R(x.p)}</td><td class="r b">${R(x.v)}</td><td class="r muted">${P(total?x.v/total*100:0)}</td></tr>`).join('')}</tbody></table>`; }
+
+VIEWS.abc=()=>{
+  const o=S.cur, A=num(o.abcA)||80, B=num(o.abcB)||95;
+  const list=S.abc==='serv'?abcServ(o):abcClass(explodeBudget(o).list,A,B);
+  const sum={A:{n:0,v:0},B:{n:0,v:0},C:{n:0,v:0}}; for(const x of list){ sum[x.cl].n++; sum[x.cl].v+=x.v; } const total=list.reduce((s,x)=>s+x.v,0);
+  return `<div class="head"><div><div class="eyebrow">Análise de Pareto</div><h1>Curva ABC</h1><div class="sub">${S.abc==='serv'?'Serviços pelo preço com BDI':'Insumos pelo custo direto decomposto'}, em ordem decrescente de valor.</div></div>
+   <div class="actions"><div class="seg"><button class="${S.abc==='serv'?'on':''}" data-act="abcm" data-m="serv">Serviços</button><button class="${S.abc==='ins'?'on':''}" data-act="abcm" data-m="ins">Insumos</button></div>
+   <button class="btn" data-act="copy" data-r="abc">Copiar</button><button class="btn" data-act="exp" data-r="abc" data-f="xlsx">Excel</button><button class="btn" data-act="exp" data-r="abc" data-f="pdf">PDF</button></div></div>
+  <div class="kpis" style="margin-bottom:14px">${['A','B','C'].map(c=>`<div class="kpi"><div class="l"><span class="cl cl-${c}">${c}</span> &nbsp;Classe ${c}</div><div class="v">${P(total?sum[c].v/total*100:0)}</div><div class="s">${sum[c].n} itens (${P(list.length?sum[c].n/list.length*100:0)} da quantidade) · R$ ${R(sum[c].v)}</div></div>`).join('')}
+   <div class="kpi"><div class="l">Limites das classes</div><div style="display:flex;gap:6px;align-items:center;margin-top:6px;font-size:12px">A até <input data-bind="abcA" data-num value="${A}" style="width:52px" aria-label="Limite A">% · B até <input data-bind="abcB" data-num value="${B}" style="width:52px" aria-label="Limite B">%</div></div></div>
+  ${list.length?`<div class="panel" style="margin-bottom:14px">${pareto(list,A,B)}</div>
+  <div class="panel flush"><div class="scroll"><table class="t"><thead><tr><th>Classe</th><th>${S.abc==='serv'?'Item':'Código'}</th><th>Descrição</th><th>Und</th><th class="r">Quant.</th><th class="r">${S.abc==='serv'?'Preço unit.':'Custo unit.'}</th><th class="r">Total</th><th class="r">%</th><th class="r">% acum.</th></tr></thead><tbody>
+  ${list.slice(0,1500).map(x=>`<tr><td><span class="cl cl-${x.cl}">${x.cl}</span></td><td class="mono">${esc(S.abc==='serv'?x.n+' · '+x.c:x.c)}</td><td class="desc">${esc(x.d)}</td><td>${esc(x.u)}</td><td class="r">${Q(x.q)}</td><td class="r">${R(x.p)}</td><td class="r b">${R(x.v)}</td><td class="r">${P(x.pct)}</td><td class="r muted">${P(x.cum)}</td></tr>`).join('')}</tbody></table></div></div>`
+  :'<div class="empty"><b>Sem itens</b>Adicione serviços à planilha.</div>'}`;
+};
+function pareto(list,A,B){
+  const N=Math.min(list.length,80), it=list.slice(0,N), W=860,H=290,ml=46,mr=42,mt=16,mb=36, iw=W-ml-mr, ih=H-mt-mb;
+  const max=Math.max(...it.map(x=>x.pct),0.01), bw=iw/N; let g='',bars='',pts=[];
+  for(let k=0;k<=4;k++){ const y=mt+ih-ih*k/4; g+=`<line class="gl" x1="${ml}" x2="${W-mr}" y1="${y}" y2="${y}"/><text class="ax" x="${W-mr+6}" y="${y+3}">${k*25}%</text><text class="ax" x="${ml-6}" y="${y+3}" text-anchor="end">${nf2.format(max*k/4).replace(/,00$/,'')}%</text>`; }
+  it.forEach((x,i)=>{ const h=x.pct/max*ih, X=ml+i*bw; bars+=`<rect class="bar-${x.cl}" x="${(X+bw*0.12).toFixed(1)}" y="${(mt+ih-h).toFixed(1)}" width="${Math.max(1,bw*0.76).toFixed(1)}" height="${h.toFixed(1)}"><title>${esc(x.d)} — ${P(x.pct)} (acum. ${P(x.cum)})</title></rect>`; pts.push(`${(X+bw/2).toFixed(1)},${(mt+ih-x.cum/100*ih).toFixed(1)}`); });
+  const th=(v,l)=>{ const y=mt+ih-v/100*ih; return `<line class="th" x1="${ml}" x2="${W-mr}" y1="${y}" y2="${y}"/><text class="thl" x="${ml+6}" y="${y-4}">${l} ${v}%</text>`; };
+  return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Curva ABC">${g}${bars}${th(A,'Limite A')}${th(B,'Limite B')}<polyline class="ln" points="${pts.join(' ')}"/>
+   <text class="ax" x="${ml}" y="${H-10}">Itens em ordem decrescente de valor${list.length>N?` (primeiros ${N} de ${list.length})`:` (${N})`} · barras: % do item (eixo esquerdo) · linha: % acumulado (eixo direito)</text></svg>`;
+}
+
+VIEWS.ind=()=>{
+  const o=S.cur, {tot,grp,bdi}=calc(o), {list}=explodeBudget(o); const byT={}; let hMO=0;
+  for(const x of list){ byT[x.t]=(byT[x.t]||0)+x.v; if(x.t==='MO'&&norm(x.u).trim()==='H') hMO+=x.q; }
+  const cd=list.reduce((s,x)=>s+x.v,0)||0; const es=etapas(o); const maxE=Math.max(...es.map(e=>grp[e.id]?.pv||0),1);
+  const nServ=o.items.filter(i=>i.k==='V').length, a=num(o.area)||0, cub=num(o.cub)||0;
+  const k=(l,v,s)=>`<div class="kpi"><div class="l">${l}</div><div class="v">${v}</div>${s?`<div class="s">${s}</div>`:''}</div>`;
+  return `<div class="head"><div><div class="eyebrow">Resumo gerencial</div><h1>Indicadores</h1><div class="sub">${nServ} serviços em ${es.length} etapas · ${esc(labelOf(o.base))}</div></div></div>
+  <div class="kpis" style="margin-bottom:16px">
+   ${k('Preço total (com BDI)','R$ '+R(tot.pv))}${k('Custo direto','R$ '+R(tot.cd))}${k('BDI aplicado',P(bdi*100),'R$ '+R(tot.bdiV))}
+   ${k('Preço por m²',a?'R$ '+R(tot.pv/a):'—',a?Q(a)+' m² de área':'Informe a área em Dados da obra')}${k('Custo direto por m²',a?'R$ '+R(tot.cd/a):'—')}
+   ${k('Horas de mão de obra',nf0.format(hMO)+' h',a?nf2.format(hMO/a)+' h/m²':'')}
+   ${k('Comparação com CUB',cub&&a?P(tot.pv/a/cub*100):'—',`<label style="display:flex;gap:6px;align-items:center;margin-top:4px">CUB R$/m² <input data-bind="cub" data-num value="${cub?R(cub):''}" style="width:90px" inputmode="decimal" aria-label="CUB de referência"></label>`)}
+  </div>
+  <div class="two"><div class="panel"><h2>Composição do custo direto</h2>
+    <div class="stackbar">${['MAT','MO','EQ','OUT'].map(t=>byT[t]?`<div class="c-${t}" style="width:${byT[t]/cd*100}%" title="${TL[t]} ${P(byT[t]/cd*100)}"></div>`:'').join('')}</div>
+    <div class="legend">${['MAT','MO','EQ','OUT'].map(t=>`<span><i class="c-${t}"></i>${TL[t]} <b>${P(cd?(byT[t]||0)/cd*100:0)}</b></span>`).join('')}</div>
+    <p class="note">Decomposição pelas composições unitárias. Serviços sem composição entram em Outros.</p></div>
+   <div class="panel"><h2>Distribuição por etapa</h2><div class="hbar">${es.map(e=>{ const v=grp[e.id]?.pv||0; return `<div class="lb" title="${esc(e.d)}">${esc(e.d)}</div><div class="tr"><div class="fl" style="width:${v/maxE*100}%"></div></div><div class="tab">${P(tot.pv?v/tot.pv*100:0)}</div>`; }).join('')||'<div class="note">Sem etapas.</div>'}</div></div></div>`;
+};
+
+VIEWS.crono=()=>{
+  const o=S.cur, {grp,tot}=calc(o), es=etapas(o), N=Math.max(1,Math.min(60,Math.round(num(o.prazo)||1))); o.crono=o.crono||{};
+  const mon=Array(N).fill(0); let warn=0;
+  const rowsH=es.map(e=>{ const arr=(o.crono[e.id]||[]).slice(0,N); while(arr.length<N) arr.push(0); const s=arr.reduce((a,b)=>a+(num(b)||0),0); if(Math.abs(s-100)>0.01&&(grp[e.id]?.pv||0)>0) warn++; const v=grp[e.id]?.pv||0; arr.forEach((p,m)=>mon[m]+=v*(num(p)||0)/100);
+    return `<tr><td class="desc b">${esc(e.d)}<div class="note">R$ ${R(v)}</div></td>${arr.map((p,m)=>`<td><input data-cr="${e.id}" data-m="${m}" value="${p?nf2.format(p):''}" inputmode="decimal" aria-label="${esc(e.d)} mês ${m+1}"></td>`).join('')}<td class="r ${Math.abs(s-100)>0.01?'':'muted'}" style="${Math.abs(s-100)>0.01?'color:var(--bad);font-weight:600':''}">${P(s)}</td></tr>`; }).join('');
+  let acc=0; const cum=mon.map(v=>acc+=v);
+  return `<div class="head"><div><div class="eyebrow">Físico-financeiro</div><h1>Cronograma</h1><div class="sub">Percentual de execução de cada etapa por mês. Prazo: ${N} meses.</div></div>
+  <div class="actions"><label class="chk">Prazo <input data-bind="prazo" data-num value="${N}" style="width:56px" inputmode="numeric"> meses</label><button class="btn" data-act="cronoU">Distribuir uniforme</button><button class="btn" data-act="cronoS">Escalonar etapas</button>
+  <button class="btn" data-act="exp" data-r="crono" data-f="xlsx">Excel</button><button class="btn" data-act="exp" data-r="crono" data-f="pdf">PDF</button></div></div>
+  ${warn?`<div class="banner"><b>${warn} etapa(s)</b> não somam 100%. Ajuste os percentuais (coluna Total).</div>`:''}
+  ${es.length?`<div class="panel flush crono" style="margin-bottom:14px"><div class="scroll"><table class="t"><thead><tr><th>Etapa</th>${mon.map((_,m)=>`<th class="r">Mês ${m+1}</th>`).join('')}<th class="r">Total</th></tr></thead><tbody>${rowsH}
+   <tr class="tot"><td>Desembolso no mês (R$)</td>${mon.map(v=>`<td class="r">${R(v)}</td>`).join('')}<td class="r">${R(mon.reduce((a,b)=>a+b,0))}</td></tr>
+   <tr><td class="b">Acumulado (R$)</td>${cum.map(v=>`<td class="r">${R(v)}</td>`).join('')}<td></td></tr>
+   <tr><td class="b">Acumulado (%)</td>${cum.map(v=>`<td class="r">${P(tot.pv?v/tot.pv*100:0)}</td>`).join('')}<td></td></tr></tbody></table></div></div>
+   <div class="panel"><h2>Curva S</h2>${curveS(mon,cum,tot.pv)}</div>`:'<div class="empty"><b>Sem etapas</b>Crie etapas na planilha para montar o cronograma.</div>'}`;
+};
+function curveS(mon,cum,total){ const N=mon.length, W=860,H=240,ml=70,mr=40,mt=14,mb=30,iw=W-ml-mr,ih=H-mt-mb, mx=Math.max(...mon,1), bw=iw/N; let g='',b='',pts=[];
+  for(let k=0;k<=4;k++){ const y=mt+ih-ih*k/4; g+=`<line class="gl" x1="${ml}" x2="${W-mr}" y1="${y}" y2="${y}"/><text class="ax" x="${W-mr+6}" y="${y+3}">${k*25}%</text><text class="ax" x="${ml-6}" y="${y+3}" text-anchor="end">${nf0.format(mx*k/4/1000)} mil</text>`; }
+  mon.forEach((v,i)=>{ const h=v/mx*ih, X=ml+i*bw; b+=`<rect class="bar-m" x="${X+bw*.2}" y="${mt+ih-h}" width="${bw*.6}" height="${h}"><title>Mês ${i+1}: R$ ${R(v)}</title></rect><text class="ax" x="${X+bw/2}" y="${H-12}" text-anchor="middle">${i+1}</text>`; pts.push(`${(X+bw/2).toFixed(1)},${(mt+ih-(total?cum[i]/total:0)*ih).toFixed(1)}`); });
+  return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Curva S">${g}${b}<polyline class="ln" points="${pts.join(' ')}"/>${pts.map(p=>{const [x,y]=p.split(',');return `<circle class="dot" cx="${x}" cy="${y}" r="3"/>`}).join('')}</svg>
+   <p class="note">Barras: desembolso mensal (eixo esquerdo, R$). Linha: percentual acumulado (eixo direito).</p>`; }
+
+VIEWS.bdi=()=>{
+  const o=S.cur, b=o.bdi, v=bdiOf(o)*100;
+  const f=(k,l,h)=>`<label class="field"><span>${l}</span><input data-bdi="${k}" value="${nf2.format(num(b[k])||0)}" inputmode="decimal" ${b.manual?'disabled':''}>${h?`<span class="note">${h}</span>`:''}</label>`;
+  return `<div class="head"><div><div class="eyebrow">Benefícios e despesas indiretas</div><h1>BDI</h1><div class="sub">Fórmula do Acórdão TCU 2.622/2013, aplicada sobre o custo direto de cada serviço.</div></div></div>
+  <div class="two"><div class="panel stack">
+   <label class="chk"><input type="checkbox" data-bdim ${b.manual?'checked':''}> Informar BDI manualmente</label>
+   ${b.manual?`<label class="field"><span>BDI (%)</span><input data-bdi="v" value="${nf2.format(num(b.v)||0)}" inputmode="decimal"></label>`:''}
+   <div class="grid">${f('ac','Administração central (AC) %')}${f('s','Seguro (S) %')}${f('g','Garantia (G) %')}${f('r','Risco (R) %')}${f('df','Despesas financeiras (DF) %')}${f('l','Lucro (L) %')}</div>
+   <h3>Tributos sobre o preço (I)</h3>
+   <div class="grid">${f('pis','PIS %')}${f('cofins','COFINS %')}${f('iss','ISS %','Conforme o município e a base de cálculo')}${f('cprb','CPRB %','4,5% quando o orçamento é desonerado')}</div></div>
+   <div class="stack"><div class="kpi"><div class="l">BDI calculado</div><div class="v" style="font-size:34px;color:var(--accent)">${P(v)}</div><div class="s">BDI = [(1 + AC + S + R + G) × (1 + DF) × (1 + L)] ÷ (1 − I) − 1</div></div>
+   <div class="panel stack"><label class="field"><span>BDI diferenciado (%) — ex.: fornecimento de equipamentos</span><input data-bind="bdi2" data-num value="${nf2.format(num(o.bdi2)||0)}" inputmode="decimal"></label>
+   <p class="note">Marque B₂ nos serviços da planilha para aplicar este BDI no lugar do principal.</p></div>
+   <p class="note">Faixas de referência do TCU para edificações (1º quartil, médio, 3º quartil): 20,34%, 22,12% e 25,00%. Confira os valores aplicáveis ao seu tipo de obra.</p></div></div>`;
+};
+
+VIEWS.rel=()=>{
+  const R0=[['sint','Planilha sintética','Etapas, subetapas e serviços com quantidades, preços e totais.'],['anal','Planilha analítica','Cada serviço com os itens da sua composição.'],['ins','Insumos','Materiais, mão de obra e equipamentos extraídos das composições.'],['abcS','Curva ABC de serviços','Classificação dos serviços por peso no preço.'],['abcI','Curva ABC de insumos','Classificação dos insumos por peso no custo.'],['crono','Cronograma físico-financeiro','Percentuais e desembolsos mensais.'],['bdiR','Composição do BDI','Parcelas e fórmula utilizada.']];
+  return `<div class="head"><div><div class="eyebrow">Exportação</div><h1>Relatórios</h1><div class="sub">Gere arquivos PDF ou Excel do orçamento aberto. O arquivo é oferecido para você salvar.</div></div>
+  <div class="actions"><button class="btn primary" data-act="exp" data-r="all" data-f="xlsx">Pacote completo em Excel</button></div></div>
+  <div class="cards">${R0.map(([k,t,d])=>`<div class="card"><div class="nm">${t}</div><div class="meta">${d}</div><div class="row"><button class="btn sm" data-act="exp" data-r="${k}" data-f="pdf">PDF</button><button class="btn sm" data-act="exp" data-r="${k}" data-f="xlsx">Excel</button><button class="btn sm ghost" data-act="copy" data-r="${k}">Copiar</button></div></div>`).join('')}
+   <div class="card"><div class="nm">Backup do orçamento</div><div class="meta">Arquivo .json para guardar ou abrir em outro computador (Orçamentos › Importar backup). Inclui composições próprias usadas.</div><div class="row"><button class="btn sm" data-act="backup">Salvar backup</button></div></div></div>
+  <p class="note" style="margin-top:14px">“Copiar” leva a tabela para a área de transferência: cole direto no Excel ou no Google Planilhas.</p>`;
+};
+
+VIEWS.bases=()=>{
+  S.q.pk=S.q.pk||defPk(); const M=PUB.man;
+  const imp=Object.values(S.bases).filter(b=>!b.pub&&b.id!=='PROPRIA');
+  const own=S.docs.filter(d=>d.kind==='cpu'||d.kind==='ins').sort((a,b)=>String(a.c).localeCompare(String(b.c)));
+  const si=M?.sinapi?.info||{};
+  return `<div class="head"><div><div class="eyebrow">Consulta pública de preços</div><h1>Bases de preços</h1><div class="sub">Escolha a base, o mês, o estado e o regime de encargos. Clique no código para ver a composição analítica.</div></div>
+   <div class="actions"><button class="btn" data-act="newIns">Novo insumo / cotação</button><button class="btn" data-act="newCpu">Nova composição própria</button><button class="btn" data-act="imp">Importar outra base</button></div></div>
+  <div class="panel flush" style="margin-bottom:16px"><div class="toolbar">${searchBar('q')}</div><div class="scroll" id="res-q">${resTable(S.q,'q')}</div></div>
+  <div class="two">
+   <div class="panel"><h2>Bases públicas incorporadas</h2>${M?`<div class="stack">
+     <div><div class="b">SINAPI · Caixa Econômica Federal</div><div class="note">${M.sinapi.ufs.length} estados · não desonerado, desonerado e sem encargos complementares · insumos, composições e analítico</div>
+       <div class="scroll" style="margin-top:6px"><table class="t"><thead><tr><th>Mês de referência</th><th>Publicado em</th><th class="r">Insumos</th><th class="r">Composições</th></tr></thead><tbody>${M.sinapi.meses.map(m=>`<tr><td class="b">${fmtMes(m)}</td><td>${esc(si[m]?.emissao||'')}</td><td class="r">${nf0.format(si[m]?.ins||0)}</td><td class="r">${nf0.format(si[m]?.comp||0)}</td></tr>`).join('')}</tbody></table></div></div>
+     <div><div class="b">CDHU · Boletim Referencial de Custos (SP)</div><div class="note">Boletim ${M.cdhu.versao} · data-base ${esc(M.cdhu.data_base)} · mão de obra com leis sociais incluídas</div></div>
+     <p class="note" style="margin:0">Dados extraídos dos arquivos oficiais e conferidos com uma segunda extração independente para SP. Nos estados sem coleta de um insumo, vale o preço atribuído de São Paulo (marcado AS), como o próprio SINAPI faz.</p></div>`
+     :'<p class="note">Não foi possível carregar as bases incorporadas agora. Recarregue a página.</p>'}</div>
+   <div class="panel"><h2>Bases importadas</h2><div class="stack">${imp.length?imp.map(b=>`<div style="display:flex;gap:10px;justify-content:space-between;align-items:flex-start;border-bottom:1px solid var(--line);padding-bottom:10px"><div style="min-width:0"><div class="b">${esc(b.nome||baseLong(b))}</div><div class="note">${esc(baseLong(b))} · ${nf0.format(Object.keys(b.ins).length)} insumos · ${nf0.format(Object.keys(b.comps).length)} composições</div></div><button class="btn sm danger" data-act="delBase" data-id="${b.id}">Remover</button></div>`).join(''):'<p class="note" style="margin:0">Para SICRO, ORSE, SEINFRA, SETOP, FDE ou outra tabela, baixe a planilha no site oficial e use “Importar outra base”.</p>'}
+     <div class="src"><a href="https://www.gov.br/dnit/pt-br/assuntos/planejamento-e-pesquisa/custos-e-pagamentos/custos-e-pagamentos-dnit/sistemas-de-custos/sicro" target="_blank" rel="noopener"><b>SICRO · DNIT</b><span>Infraestrutura de transportes, por estado.</span></a>
+     <a href="https://orse.cehop.se.gov.br/" target="_blank" rel="noopener"><b>ORSE · CEHOP/SE</b><span>Composições e insumos em planilha.</span></a></div>
+     <p class="note" style="margin:0">Bases importadas ficam guardadas neste navegador.</p></div></div></div>
+  <div class="panel" style="margin-top:16px"><h2>Composições e insumos próprios</h2>${own.length?`<div class="scroll"><table class="t"><thead><tr><th>Código</th><th>Tipo</th><th>Descrição</th><th>Und</th><th class="r">Custo unit.</th><th></th></tr></thead><tbody>${own.map(d=>`<tr><td class="mono"><button class="linkish mono" data-act="comp" data-b="PROPRIA" data-t="${d.kind==='cpu'?'C':'I'}" data-c="${esc(d.c)}">${esc(d.c)}</button></td><td><span class="tt tt-${d.kind==='cpu'?'C':(d.t||'MAT')}">${d.kind==='cpu'?'COMP':TS[d.t||'MAT']}</span></td><td class="desc">${esc(d.d)}</td><td>${esc(d.u)}</td><td class="r">${R(refUnit('PROPRIA',d.kind==='cpu'?'C':'I',d.c))}</td><td class="act"><button class="btn sm" data-act="${d.kind==='cpu'?'editCpu':'editIns'}" data-id="${d.id}">Editar</button> <button class="btn sm danger" data-act="delOwn" data-id="${d.id}">Excluir</button></td></tr>`).join('')}</tbody></table></div>`
+    :'<p class="note">Crie composições próprias (CPU) combinando insumos e composições de qualquer base, ou cadastre insumos de cotação de mercado.</p>'}</div>`;
+};
+function qState(key){ return key==='q'?S.q:key==='m'?S.modalQ:S.cpuQ; }
+function srcList(own){ const L=[]; if(PUB.man?.sinapi) L.push(['SINAPI','SINAPI · Caixa']); if(PUB.man?.cdhu) L.push(['CDHU','CDHU · SP']);
+  for(const b of Object.values(S.bases)) if(!b.pub&&b.id!=='PROPRIA') L.push([b.id,(b.nome||baseShort(b))+' (importada)']);
+  if(own) L.push(['PROPRIA','Composições próprias']); return L; }
+function picker(key,own){ const pk=key==='plan'||key==='new'?S.pk[key]:qState(key).pk; const M=PUB.man?.sinapi;
+  const sel=(k,opts)=>`<select data-pk="${key}" data-k="${k}" aria-label="${k}">${opts.map(([v,l])=>`<option value="${esc(v)}" ${String(pk[k])===String(v)?'selected':''}>${esc(l)}</option>`).join('')}</select>`;
+  let h=sel('src',srcList(own));
+  if(pk.src==='SINAPI'&&M){ h+=sel('mes',M.meses.map(m=>[m,fmtMes(m)]))+sel('uf',M.ufs.map(u=>[u,u]))+sel('reg',[['SD','Não desonerado'],['CD','Desonerado'],['SE','Sem encargos complementares']]); }
+  return h; }
+function searchBar(key){ const st=qState(key); return `<input data-sq="${key}" data-k="q" placeholder="Buscar por código ou descrição (ex.: alvenaria bloco cerâmico)" value="${esc(st.q)}" style="flex:1;min-width:200px" aria-label="Buscar">
+  ${picker(key,key!=='m'||true)}<select data-sq="${key}" data-k="t" aria-label="Tipo"><option value="C" ${st.t==='C'?'selected':''}>Composições</option><option value="I" ${st.t==='I'?'selected':''}>Insumos</option><option value="*" ${st.t==='*'?'selected':''}>Ambos</option></select>`; }
+function refreshRes(key){ const box=$('#res-'+key); if(box) box.innerHTML=resTable(qState(key),key); }
+function resTable(st,key){
+  const bid=pkId(st.pk);
+  if(!S.bases[bid]){ if(!parseId(bid)) return '<div class="empty"><b>Base indisponível</b>Escolha outra base.</div>';
+    ensureBase(bid).then(b=>{ const box=$('#res-'+key); if(!box) return; box.innerHTML=b?resTable(st,key):'<div class="empty"><b>Não foi possível carregar a base</b>Verifique a conexão e tente novamente.</div>'; });
+    return '<div class="empty"><b>Carregando a base…</b>'+esc(labelOf(bid))+'</div>'; }
+  const lim=key==='q'?200:120, res=search(st.q,bid,st.t,lim); if(!res.length) return '<div class="empty"><b>Nada encontrado</b>Tente outros termos, outro tipo (composição/insumo) ou outra base.</div>';
+  const canAdd=key!=='q'||!!S.cur;
+  return `<table class="t"><thead><tr><th>Código</th><th>Tipo</th><th>Descrição</th><th>Und</th><th class="r">Custo unit.</th><th></th></tr></thead><tbody>${res.map(r=>{ const i=refInfo(r.b,r.t,r.c); const u=refUnit(r.b,r.t,r.c);
+    return `<tr><td class="mono"><button class="linkish mono" data-act="comp" data-b="${esc(r.b)}" data-t="${r.t}" data-c="${esc(r.c)}">${esc(r.c)}</button></td><td><span class="tt tt-${r.t==='C'?'C':(i.t||'MAT')}">${r.t==='C'?'COMP':TS[i.t||'MAT']}</span></td><td class="desc">${esc(i.d)}${i.g&&r.t==='C'?` <span class="note">· ${esc(i.g)}</span>`:''}</td><td>${esc(i.u)}</td><td class="r">${u==null?'<span class="note" title="Sem preço nesta referência">sem preço</span>':R(u)}${i.as?' <span class="tag" title="Preço atribuído de São Paulo (sem coleta nesta UF)">AS</span>':''}</td>
+    <td class="act">${canAdd?`<button class="btn sm" data-act="${key==='cpu'?'cpuAdd':'addRef'}" data-b="${esc(r.b)}" data-t="${r.t}" data-c="${esc(r.c)}">${key==='cpu'?'Incluir':'Adicionar'}</button>`:''}</td></tr>`; }).join('')}</tbody></table>${res.length>=lim?'<p class="note" style="padding:8px">Mostrando os primeiros resultados. Refine a busca.</p>':''}`;
+}
+
+/* ============ modais ============ */
+function modal(fn){ S.modalR=fn; const m=$('#modal'); m.innerHTML=fn(); m.hidden=false; const f=m.querySelector('[autofocus]'); if(f) f.focus(); }
+function remodal(){ if(S.modalR&&!$('#modal').hidden){ const m=$('#modal'); const sc=m.scrollTop; m.innerHTML=S.modalR(); m.scrollTop=sc; } }
+function closeModal(){ $('#modal').hidden=true; $('#modal').innerHTML=''; S.modalR=null; }
+const dlg=(title,body,foot,wide)=>`<div class="dlg ${wide?'wide':''}" role="dialog" aria-modal="true"><div class="dh"><div>${title}</div><button class="ib" data-act="close" aria-label="Fechar" style="font-size:18px">✕</button></div><div class="db">${body}</div>${foot?`<div class="df">${foot}</div>`:''}</div>`;
+function confirmBox(msg,okLabel,fn){ S.onOk=fn; modal(()=>dlg(`<h2 style="margin:0">Confirmar</h2>`,`<p style="margin:0">${msg}</p>`,`<button class="btn" data-act="close">Cancelar</button><button class="btn primary" data-act="ok">${okLabel}</button>`)); }
+
+function newOrcModal(){ S.pk.new=S.pk.new||defPk();
+  const now=new Date(); const m=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  modal(()=>dlg('<h2 style="margin:0">Novo orçamento</h2>',`<div class="grid" id="fNew"><label class="field w2"><span>Nome</span><input name="nome" autofocus placeholder="Ex.: Reforma apartamento 82 m²"></label><label class="field"><span>Cliente</span><input name="cliente"></label><label class="field"><span>Local</span><input name="local"></label>
+   <label class="field"><span>Data-base</span><input type="month" name="dataBase" value="${m}"></label><div class="field w2" style="grid-column:1/-1"><span>Referência de preços</span><div style="display:flex;gap:6px;flex-wrap:wrap">${picker('new',false)}</div></div><label class="field"><span>Área (m²)</span><input name="area" inputmode="decimal"></label><label class="field"><span>Prazo (meses)</span><input name="prazo" value="6" inputmode="numeric"></label></div>`,
+   `<button class="btn" data-act="close">Cancelar</button><button class="btn primary" data-act="createOrc">Criar orçamento</button>`)); }
+function readForm(sel){ const o={}; document.querySelectorAll(sel+' [name]').forEach(e=>o[e.name]=e.type==='checkbox'?e.checked:e.value); return o; }
+
+function addModal(){ S.modalQ={q:S.modalQ?.q||'',t:S.modalQ?.t||'C',pk:pkFromId(S.cur.base)}; S.addQty=S.addQty||1;
+  modal(()=>dlg(`<h2 style="margin:0">Adicionar serviço da base</h2><div class="note">Inserido abaixo da linha selecionada na planilha.</div>`,
+   `<div class="toolbar" style="padding:0;border:0">${searchBar('m')}<label class="chk">Quant. <input id="addQty" value="${Q(S.addQty)}" style="width:80px" inputmode="decimal"></label></div><div class="res" id="res-m">${resTable(S.modalQ,'m')}</div>`,
+   `<button class="btn" data-act="close">Fechar</button>`,true)); setTimeout(()=>{ const i=$('#modal [data-sq="m"][data-k="q"]'); if(i) i.focus(); },20); }
+function manualModal(){ modal(()=>dlg('<h2 style="margin:0">Serviço sem composição</h2><div class="note">Para verbas, cotações e serviços de terceiros.</div>',
+  `<div class="grid" id="fMan"><label class="field w2"><span>Descrição</span><input name="d" autofocus></label><label class="field"><span>Código (opcional)</span><input name="c"></label><label class="field"><span>Fonte</span><input name="bl" value="COTAÇÃO"></label><label class="field"><span>Unidade</span><input name="u" value="UN"></label><label class="field"><span>Quantidade</span><input name="q" value="1" inputmode="decimal"></label><label class="field"><span>Custo unitário (R$)</span><input name="cu" inputmode="decimal"></label></div>`,
+  `<button class="btn" data-act="close">Cancelar</button><button class="btn primary" data-act="saveMan">Adicionar</button>`)); }
+
+function compModal(b,t,c){ S.det={b,t,c}; S.exp=new Set(); modal(renderComp); }
+function renderComp(){ const {b,t,c}=S.det, base=S.bases[b], info=refInfo(b,t,c);
+  if(!info) return dlg('<h2 style="margin:0">Não encontrado</h2>','<p>Este item não está nas bases carregadas.</p>','<button class="btn" data-act="close">Fechar</button>');
+  const u=refUnit(b,t,c);
+  const head=`<div class="eyebrow">${t==='C'?'Composição':'Insumo'} · ${esc(labelOf(b))}${info.g?' · '+esc(info.g):''}</div><h2 style="margin:4px 0 2px"><span class="mono">${esc(c)}</span> · ${esc(info.d)}</h2><div class="note">Unidade ${esc(info.u)} · custo unitário <b>R$ ${u==null?'sem preço':R(u)}</b>${t==='C'&&info.c!=null?' (valor oficial da base)':t==='C'?' (calculado pelos itens)':''}${t==='I'?' · '+TL[info.t||'MAT']:''}${info.as?' · preço atribuído de SP':''}${info.ct?` · <a href="${esc(info.ct)}" target="_blank" rel="noopener">caderno técnico</a>`:''}</div>`;
+  let body='';
+  if(t==='C'){ body=(info.it&&info.it.length)?`<div class="res"><table class="t"><thead><tr><th>Código</th><th>Tipo</th><th>Descrição</th><th>Und</th><th class="r">Coef.</th><th class="r">Custo unit.</th><th class="r">Parcial</th></tr></thead><tbody>${compRows(b,info,0,'')}</tbody></table></div><p class="note" style="margin:0">Use + para abrir as composições auxiliares.</p>`:'<p class="note">Esta composição não tem o analítico carregado (importe a aba analítica da base para ver os itens).</p>'; }
+  const foot=`<button class="btn" data-act="close">Fechar</button>${base?.pub&&base.fonte==='SINAPI'?`<button class="btn" data-act="cmpUF">Comparar estados</button>`:''}${t==='C'?`<button class="btn" data-act="dupCpu">Criar composição própria a partir desta</button>`:''}${S.cur?`<button class="btn primary" data-act="addRef" data-b="${esc(b)}" data-t="${t}" data-c="${esc(c)}">Adicionar ao orçamento</button>`:''}`;
+  return dlg(head,body,foot,true);
+}
+function compRows(bid,c,depth,path){ let h='';
+  for(const it of c.it||[]){ const b2=it.b||bid, info=refInfo(b2,it.t,it.c), un=itemUnit(b2,it,0), key=path+'/'+b2+'|'+it.c, isC=it.t==='C', open=S.exp.has(key);
+    h+=`<tr${depth?' style="background:color-mix(in srgb,var(--sunk) '+Math.min(80,depth*35)+'%,transparent)"':''}><td style="padding-left:${8+depth*18}px;white-space:nowrap">${isC?`<button class="tog" data-act="tog" data-k="${esc(key)}" aria-label="${open?'Recolher':'Expandir'}">${open?'−':'+'}</button>`:''}<span class="mono">${esc(it.c)}</span>${b2!==bid?` <span class="tag">${esc(baseShort(S.bases[b2]))}</span>`:''}</td>
+     <td><span class="tt tt-${isC?'C':(info?.t||'OUT')}">${isC?'COMP':TS[info?.t||'OUT']}</span></td><td class="desc">${esc(info?.d||'(não encontrado na base)')}</td><td>${esc(info?.u||'')}</td><td class="r">${Q(it.q)}</td><td class="r">${un==null?'—':R(un)}${info?.as?' <span class="tag" title="Preço atribuído de São Paulo">AS</span>':''}</td><td class="r">${R((un||0)*it.q)}</td></tr>`;
+    if(isC&&open){ const sub=S.bases[b2]?.comps[it.c]; if(sub&&depth<8) h+=compRows(b2,sub,depth+1,key); } }
+  return h; }
+
+async function cmpUF(){ const {b,t,c}=S.det, p=parseId(b); if(!p) return; const ufs=PUB.man.sinapi.ufs;
+  modal(()=>dlg('<h2 style="margin:0">Comparar estados</h2>','<div class="empty"><b>Carregando os 27 estados…</b></div>','<button class="btn" data-act="close">Fechar</button>'));
+  const rows=await Promise.all(ufs.map(async uf=>{ const v={}; for(const r of ['SD','CD','SE']){ const bb=await ensureBase(`SINAPI:${p.mes}:${uf}:${r}`); v[r]=bb?refUnit(bb.id,t,c):null; } return {uf,...v}; }));
+  if($('#modal').hidden) return; const info=refInfo(b,t,c); const vals=rows.map(x=>x[p.reg]).filter(v=>v!=null); const mn=Math.min(...vals), mx=Math.max(...vals);
+  S.cmpRows=rows; modal(()=>dlg(`<div class="eyebrow">SINAPI ${fmtMes(p.mes)} · por estado</div><h2 style="margin:4px 0 0"><span class="mono">${esc(c)}</span> · ${esc(info?.d||'')}</h2>`,
+   `<div class="res"><table class="t"><thead><tr><th>UF</th><th class="r">Não desonerado</th><th class="r">Desonerado</th><th class="r">Sem encargos</th><th class="r">vs. ${p.uf}</th></tr></thead><tbody>${rows.map(x=>{ const base=rows.find(y=>y.uf===p.uf)?.[p.reg]; const v=x[p.reg]; const d=base&&v!=null?(v/base-1)*100:null;
+     return `<tr${x.uf===p.uf?' class="r-s"':''}><td class="b">${x.uf}</td>${['SD','CD','SE'].map(r=>`<td class="r ${r===p.reg?'b':''}" style="${r===p.reg&&v===mn?'color:var(--good)':r===p.reg&&v===mx?'color:var(--bad)':''}">${x[r]==null?'—':R(x[r])}</td>`).join('')}<td class="r muted">${d==null?'':(d>0?'+':'')+nf2.format(d)+'%'}</td></tr>`; }).join('')}</tbody></table></div>
+   <p class="note" style="margin:0">Verde: menor custo no regime selecionado (${REG[p.reg]}); vermelho: maior.</p>`,'<button class="btn" data-act="close">Fechar</button>',true)); }
+
+/* composição própria */
+function cpuModal(doc){ S.ed=doc?JSON.parse(JSON.stringify(doc)):{id:uid(),kind:'cpu',c:nextCode('CP'),d:'',u:'M2',g:'',it:[]}; S.cpuQ={q:'',t:'*',pk:S.cur?pkFromId(S.cur.base):defPk()}; modal(renderCpu); }
+function nextCode(p){ let n=1; const used=new Set(S.docs.filter(d=>d.kind==='cpu'||d.kind==='ins').map(d=>d.c)); while(used.has(`${p}-${String(n).padStart(3,'0')}`)) n++; return `${p}-${String(n).padStart(3,'0')}`; }
+function renderCpu(){ const e=S.ed; let tot=0;
+  const rows=e.it.map((it,i)=>{ const info=refInfo(it.b,it.t,it.c), un=itemUnit(it.b,it,0)||0; tot+=un*it.q;
+    return `<tr><td class="mono">${esc(it.c)} <span class="tag">${esc(baseShort(S.bases[it.b]))}</span></td><td class="desc">${esc(info?.d||'(não encontrado)')}</td><td>${esc(info?.u||'')}</td><td><input class="cell q" data-cq="${i}" value="${Q(it.q)}" inputmode="decimal" aria-label="Coeficiente"></td><td class="r">${R(un)}</td><td class="r">${R(un*it.q)}</td><td><button class="ib" data-act="cpuDel" data-i="${i}" aria-label="Remover">✕</button></td></tr>`; }).join('');
+  return dlg(`<h2 style="margin:0">Composição própria</h2><div class="note">Combine insumos e composições de qualquer base com seus coeficientes.</div>`,
+   `<div class="grid" id="fCpu"><label class="field"><span>Código</span><input name="c" value="${esc(e.c)}"></label><label class="field w2"><span>Descrição</span><input name="d" value="${esc(e.d)}" placeholder="Ex.: PAREDE DRYWALL ST 95 MM"></label><label class="field"><span>Unidade</span><input name="u" value="${esc(e.u)}"></label><label class="field"><span>Grupo</span><input name="g" value="${esc(e.g)}"></label></div>
+   <div class="blk"><h3>Itens da composição <span class="note" style="font-weight:400">· custo unitário R$ ${R(tot)}</span></h3>${e.it.length?`<div class="scroll"><table class="t"><thead><tr><th>Código</th><th>Descrição</th><th>Und</th><th class="r">Coef.</th><th class="r">Custo unit.</th><th class="r">Parcial</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`:'<p class="note" style="margin:0">Nenhum item ainda. Busque abaixo e clique em Incluir.</p>'}</div>
+   <div class="blk"><h3>Buscar itens</h3><div class="toolbar" style="padding:0;border:0">${searchBar('cpu')}</div><div class="res" id="res-cpu">${resTable(S.cpuQ,'cpu')}</div></div>`,
+   `<button class="btn" data-act="close">Cancelar</button><button class="btn primary" data-act="cpuSave">Salvar composição</button>`,true); }
+function insModal(doc){ const e=doc||{id:uid(),kind:'ins',c:nextCode('IN'),d:'',u:'UN',p:'',t:'MAT',fonte:''};
+  modal(()=>dlg('<h2 style="margin:0">Insumo próprio / cotação</h2>',`<div class="grid" id="fIns" data-id="${e.id}"><label class="field"><span>Código</span><input name="c" value="${esc(e.c)}"></label><label class="field w2"><span>Descrição</span><input name="d" value="${esc(e.d)}" autofocus></label><label class="field"><span>Unidade</span><input name="u" value="${esc(e.u)}"></label>
+   <label class="field"><span>Preço unitário (R$)</span><input name="p" value="${e.p!==''?R(e.p):''}" inputmode="decimal"></label><label class="field"><span>Tipo</span><select name="t">${['MAT','MO','EQ','SV','OUT'].map(t=>`<option value="${t}" ${e.t===t?'selected':''}>${TL[t]}</option>`).join('')}</select></label><label class="field w2"><span>Fonte (fornecedor, data da cotação)</span><input name="fonte" value="${esc(e.fonte||'')}"></label></div>`,
+   `<button class="btn" data-act="close">Cancelar</button><button class="btn primary" data-act="insSave">Salvar insumo</button>`)); }
+
+/* ============ importação de base ============ */
+function impModal(){ S.imp={wb:null,file:'',aoa:{},meta:{nome:'',fonte:'SINAPI',uf:'SP',data:'',regime:'N'},blk:{ins:{},comp:{},an:{}}}; modal(renderImp); }
+const BLK={ins:{t:'Insumos (preços)',cols:[['cod','Código',1],['desc','Descrição',1],['und','Unidade',0],['preco','Preço',1],['cls','Classificação / tipo',0]]},
+  comp:{t:'Composições (custos)',cols:[['cod','Código',1],['desc','Descrição',1],['und','Unidade',0],['custo','Custo unitário',1],['grupo','Grupo',0]]},
+  an:{t:'Analítico (itens de cada composição)',cols:[['comp','Código da composição',1],['tipo','Tipo do item',0],['item','Código do item',1],['coef','Coeficiente',1],['desc','Descrição',0],['und','Unidade',0]]}};
+function aoaOf(name){ const I=S.imp; if(!I.aoa[name]){ const ws=I.wb.Sheets[name]; I.aoa[name]=ws?XLSX.utils.sheet_to_json(ws,{header:1,raw:true,defval:null,blankrows:false}):[]; } return I.aoa[name]; }
+function guessHdr(a){ for(let r=0;r<Math.min(40,a.length);r++){ const row=(a[r]||[]).map(norm); const sc=row.filter(x=>/COD|DESCRI|UNID|^UN$|^UND$/.test(x)).length; if(sc>=2) return r; } return 0; }
+function labels(a,h){ let mx=0; for(let r=Math.max(0,h-3);r<=Math.min(a.length-1,h+3);r++) mx=Math.max(mx,(a[r]||[]).length); const L=[];
+  for(let j=0;j<mx;j++){ const parts=[]; for(let r=Math.max(0,h-2);r<=h;r++){ const v=str((a[r]||[])[j]); if(v&&!parts.includes(v)) parts.push(v); } L.push(parts.join(' / ')); } return L; }
+function ufCol(a,h,uf){ const U=norm(uf).trim(); if(!U) return -1; for(let r=Math.max(0,h-3);r<=h;r++){ const row=a[r]||[]; for(let j=0;j<row.length;j++) if(norm(row[j]).trim()===U) return j; } return -1; }
+function guessSheet(kind){ const ns=S.imp.wb.SheetNames, D=S.imp.meta.regime==='D';
+  const pick=(re)=>ns.find(n=>re.test(norm(n).trim()));
+  if(ns.length===1) return kind==='ins'?ns[0]:'';
+  if(kind==='ins') return pick(D?/^ICD$/:/^ISD$/)||pick(/INSUM/)||'';
+  if(kind==='comp') return pick(D?/^CCD$/:/^CSD$/)||pick(/COMPOSI(?!.*ANALIT)|CUSTO/)||'';
+  return pick(/ANALIT/)||''; }
+function guessBlk(kind){ const I=S.imp, b=I.blk[kind]; if(!b.sheet){ b.cols={}; return; } const a=aoaOf(b.sheet); if(b.hdr==null) b.hdr=guessHdr(a); const L=labels(a,b.hdr).map(norm); const g=(...re)=>{ for(const x of re){ const j=L.findIndex(l=>x.test(l)); if(j>=0) return j; } return -1; };
+  const c={};
+  if(kind==='an'){ c.comp=g(/COD.*COMPOS/,/COMPOSI/); c.tipo=g(/TIPO/); c.item=g(/COD.*ITEM/,/ITEM/); c.coef=g(/COEF/); c.desc=g(/DESCRI.*ITEM/,/DESCRI/); c.und=g(/UNID/,/^UND/,/^UN$/); }
+  else{ c.cod=g(/COD/); c.desc=g(/DESCRI/); c.und=g(/UNID/,/^UND/,/^UN\b/); const uf=ufCol(a,b.hdr,I.meta.uf);
+    if(kind==='ins'){ c.preco=uf>=0?uf:g(/PRECO/,/CUSTO/,/VALOR/); c.cls=g(/CLASSIF/,/TIPO/,/CATEG/); } else { c.custo=uf>=0?uf:g(/CUSTO/,/PRECO/,/VALOR/,/TOTAL/); c.grupo=g(/GRUPO/); } }
+  b.cols=c; }
+function renderImp(){ const I=S.imp, M=I.meta;
+  if(!I.wb) return dlg('<h2 style="margin:0">Importar base de preços</h2>',`<p style="margin:0">Selecione a planilha baixada do site oficial (XLSX, XLS, ODS ou CSV). Para o SINAPI, baixe o arquivo XLSX do mês em caixa.gov.br/sinapi, descompacte o .zip e escolha a planilha de referência.</p>
+    <label class="btn primary" style="align-self:flex-start">Escolher arquivo<input type="file" id="impFile" accept=".xlsx,.xls,.xlsm,.ods,.csv" hidden></label>${I.loading?'<p class="note">Lendo o arquivo… arquivos grandes podem levar alguns segundos.</p>':''}${window.XLSX?'':'<p class="note" style="color:var(--bad)">O leitor de planilhas não carregou. Recarregue a página.</p>'}`,'<button class="btn" data-act="close">Cancelar</button>',true);
+  const sOpts=sel=>`<option value="">— não importar —</option>`+I.wb.SheetNames.map(n=>`<option ${sel===n?'selected':''}>${esc(n)}</option>`).join('');
+  const blocks=Object.entries(BLK).map(([k,def])=>{ const b=I.blk[k]; let inner='';
+    if(b.sheet){ const a=aoaOf(b.sheet); const L=labels(a,b.hdr||0); const opt=(sel)=>`<option value="-1">—</option>`+L.map((l,j)=>`<option value="${j}" ${sel===j?'selected':''}>${XLSX.utils.encode_col(j)} · ${esc(l.slice(0,48)||'(sem título)')}</option>`).join('');
+      const ex=(a[(b.hdr||0)+1]||[]);
+      inner=`<div class="grid"><label class="field"><span>Linha do cabeçalho</span><input data-imp="${k}" data-k="hdr" value="${(b.hdr||0)+1}" inputmode="numeric"></label>${def.cols.map(([ck,cl,req])=>`<label class="field"><span>${cl}${req?' *':''}</span><select data-imp="${k}" data-k="col:${ck}">${opt(b.cols[ck]??-1)}</select>${(b.cols[ck]??-1)>=0?`<span class="note" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">ex.: ${esc(str(ex[b.cols[ck]]).slice(0,40))}</span>`:''}</label>`).join('')}</div><span class="note">${nf0.format(Math.max(0,a.length-(b.hdr||0)-1))} linhas abaixo do cabeçalho.</span>`; }
+    return `<div class="blk"><h3>${def.t}</h3><label class="field"><span>Aba da planilha</span><select data-imp="${k}" data-k="sheet">${sOpts(b.sheet)}</select></label>${inner}</div>`; }).join('');
+  return dlg(`<h2 style="margin:0">Importar base de preços</h2><div class="note">${esc(I.file)} · ${I.wb.SheetNames.length} aba(s). Confira as colunas identificadas.</div>`,
+   `<div class="grid" id="fImp"><label class="field w2"><span>Nome da base</span><input data-meta="nome" value="${esc(M.nome)}" placeholder="Ex.: SINAPI SP 09/2026"></label><label class="field"><span>Fonte</span><select data-meta="fonte">${['SINAPI','SICRO','ORSE','SEINFRA','SBC','EMOP','SIURB','FDE','PRÓPRIA','OUTRA'].map(f=>`<option ${M.fonte===f?'selected':''}>${f}</option>`).join('')}</select></label>
+    <label class="field"><span>UF</span><input data-meta="uf" value="${esc(M.uf)}" maxlength="2" style="text-transform:uppercase"></label><label class="field"><span>Data-base</span><input type="month" data-meta="data" value="${esc(M.data)}"></label><label class="field"><span>Encargos</span><select data-meta="regime"><option value="N" ${M.regime==='N'?'selected':''}>Não desonerado</option><option value="D" ${M.regime==='D'?'selected':''}>Desonerado</option></select></label></div>
+    <p class="note" style="margin:0">A UF é usada para localizar a coluna de preço quando a planilha traz um preço por estado (como no SINAPI).</p>${blocks}`,
+   `<button class="btn" data-act="close">Cancelar</button><button class="btn primary" data-act="doImp">Importar</button>`,true); }
+function readImpFile(file){ const I=S.imp; I.loading=true; I.file=file.name; remodal(); const fr=new FileReader();
+  fr.onload=()=>{ try{ I.wb=XLSX.read(new Uint8Array(fr.result),{type:'array',dense:true}); }catch(e){ I.loading=false; remodal(); toast('Não foi possível ler este arquivo.'); return; }
+    I.loading=false; const m=file.name.match(/(20\d\d)[-_ .]?(0[1-9]|1[0-2])/); if(m) I.meta.data=`${m[1]}-${m[2]}`;
+    if(/SICRO/i.test(file.name)) I.meta.fonte='SICRO'; else if(/ORSE/i.test(file.name)) I.meta.fonte='ORSE';
+    if(/DESON|_CD|ICD|CCD/i.test(file.name)&&!/SEM.?DESON|NAO.?DESON/i.test(norm(file.name))) I.meta.regime='D';
+    for(const k of ['ins','comp','an']){ I.blk[k]={sheet:guessSheet(k),hdr:null,cols:{}}; guessBlk(k); }
+    I.meta.nome=`${I.meta.fonte} ${I.meta.uf} ${fmtMes(I.meta.data)}`; remodal(); };
+  fr.onerror=()=>{ I.loading=false; remodal(); toast('Não foi possível ler este arquivo.'); }; fr.readAsArrayBuffer(file); }
+async function doImport(){ const I=S.imp, M=I.meta; const base={id:'B'+uid(),nome:M.nome||`${M.fonte} ${M.uf}`,fonte:M.fonte,uf:norm(M.uf).trim(),data:M.data,regime:M.regime,ins:{},comps:{},criado:Date.now()};
+  const B=I.blk; const col=(row,j)=>j==null||j<0?null:row[j];
+  const need=(k,keys)=>keys.every(x=>(B[k].cols[x]??-1)>=0);
+  if(B.ins.sheet&&!need('ins',['cod','desc','preco'])){ toast('Insumos: indique as colunas de código, descrição e preço.'); return; }
+  if(B.comp.sheet&&!need('comp',['cod','desc','custo'])){ toast('Composições: indique as colunas de código, descrição e custo.'); return; }
+  if(B.an.sheet&&!need('an',['comp','item','coef'])){ toast('Analítico: indique composição, item e coeficiente.'); return; }
+  if(!B.ins.sheet&&!B.comp.sheet&&!B.an.sheet){ toast('Escolha ao menos uma aba para importar.'); return; }
+  if(B.ins.sheet){ const a=aoaOf(B.ins.sheet), c=B.ins.cols; for(let r=(B.ins.hdr||0)+1;r<a.length;r++){ const row=a[r]||[]; const code=cleanCode(col(row,c.cod)); const d=str(col(row,c.desc)); if(!code||!d||norm(code)===norm(a[B.ins.hdr]?.[c.cod])) continue; const p=num(col(row,c.preco)); const u=str(col(row,c.und)); base.ins[code]={d,u,p:isFinite(p)?p:0,t:typeOf(str(col(row,c.cls)),u,d)}; } }
+  if(B.comp.sheet){ const a=aoaOf(B.comp.sheet), c=B.comp.cols; for(let r=(B.comp.hdr||0)+1;r<a.length;r++){ const row=a[r]||[]; const code=cleanCode(col(row,c.cod)); const d=str(col(row,c.desc)); if(!code||!d) continue; const v=num(col(row,c.custo)); base.comps[code]={d,u:str(col(row,c.und)),c:isFinite(v)?v:null,g:str(col(row,c.grupo)),it:[]}; } }
+  if(B.an.sheet){ const a=aoaOf(B.an.sheet), c=B.an.cols, hasT=(c.tipo??-1)>=0; let cur=null;
+    const isItem=(tp,item)=>hasT?(!!tp&&!!item):!!item;
+    for(let r=(B.an.hdr||0)+1;r<a.length;r++){ const row=a[r]||[]; const cc=cleanCode(col(row,c.comp)); if(cc) cur=cc; if(!cur) continue; const tp=norm(col(row,c.tipo)); const item=cleanCode(col(row,c.item));
+      if(!isItem(tp,item)||item===cur&&!hasT){ if(!base.comps[cur]) base.comps[cur]={d:str(col(row,c.desc)),u:str(col(row,c.und)),c:null,it:[]}; else if(!base.comps[cur].d) base.comps[cur].d=str(col(row,c.desc)); continue; }
+      const q=num(col(row,c.coef)); if(!isFinite(q)) continue;
+      const t=hasT?(/COMP/.test(tp)?'C':'I'):(base.comps[item]?'C':'I');
+      const comp=base.comps[cur]||(base.comps[cur]={d:'',u:'',c:null,it:[]}); comp.it.push({t,c:item,q});
+      const d=str(col(row,c.desc)), u=str(col(row,c.und));
+      if(t==='I'&&!base.ins[item]) base.ins[item]={d,u,p:0,t:typeOf('',u,d),sp:1};
+      if(t==='C'&&!base.comps[item]) base.comps[item]={d,u,c:null,it:[]}; } }
+  const ni=Object.keys(base.ins).length, nc=Object.keys(base.comps).length; if(!ni&&!nc){ toast('Nenhuma linha válida encontrada. Confira a linha do cabeçalho e as colunas.'); return; }
+  const ok=await IDB.put(base); S.bases[base.id]=base; S.cache.clear(); closeModal(); render();
+  toast(`Base importada: ${nf0.format(ni)} insumos e ${nf0.format(nc)} composições.${ok?'':' Não foi possível guardá-la no navegador; ela vale só nesta sessão.'}`); }
+
+/* ============ relatórios ============ */
+const T={s:'s',q:'q',m:'m',p:'p'};
+function head(o,title){ return [title,`Obra: ${o.nome||''}`,`Cliente: ${o.cliente||'—'}   Local: ${o.local||'—'}`,`Data-base: ${fmtMes(o.dataBase)}   Base: ${labelOf(o.base)}   BDI: ${P(bdiOf(o)*100)}`]; }
+function specSint(o){ const {rows,grp,tot}=calc(o); const out=[],kinds=[]; const pw=v=>tot.pv?v/tot.pv*100:0;
+  for(const r of rows){ const it=r.it; if(it.k!=='V'){ const g=grp[it.id]; out.push([r.n,'','',it.d,'','','','',r2(g.pv),r2(pw(g.pv))]); kinds.push(it.k); } else { out.push([r.n,it.c||'',it.bl||baseShort(S.bases[it.b]),it.d,it.u,r.q,r.cu,r.pu,r.tp,r2(pw(r.tp))]); kinds.push('V'); } }
+  out.push(['','','','CUSTO DIRETO TOTAL','','','','',tot.cd,'']); kinds.push('T'); out.push(['','','',`BDI (${P(bdiOf(o)*100)})`,'','','','',tot.bdiV,'']); kinds.push('T'); out.push(['','','','PREÇO TOTAL','','','','',tot.pv,100]); kinds.push('T');
+  return {sheet:'Sintética',title:'Planilha orçamentária sintética',cols:[{h:'Item',t:'s',w:8},{h:'Código',t:'s',w:11},{h:'Base',t:'s',w:11},{h:'Descrição',t:'s',w:60},{h:'Und',t:'s',w:6},{h:'Quant.',t:'q',w:11},{h:'Custo unit. (R$)',t:'m',w:13},{h:'Preço unit. (R$)',t:'m',w:13},{h:'Total (R$)',t:'m',w:15},{h:'Peso (%)',t:'p',w:9}],rows:out,kinds}; }
+function specAnal(o){ const {rows,tot}=calc(o); const out=[],kinds=[];
+  for(const r of rows){ const it=r.it; if(it.k!=='V'){ out.push([r.n,'',it.d,'','','','']); kinds.push(it.k); continue; }
+    out.push([r.n,it.c||'',it.d,it.u,r.q,r.cu,r.tc]); kinds.push('V');
+    const c=it.t==='C'?S.bases[it.b]?.comps[it.c]:null; if(c&&c.it) for(const x of c.it){ const b2=x.b||it.b, inf=refInfo(b2,x.t,x.c), un=itemUnit(b2,x,0)||0; out.push(['',x.c,'   '+(x.t==='C'?'[COMP] ':'')+(inf?.d||''),inf?.u||'',x.q,un,r2(un*x.q)]); kinds.push('I'); } }
+  out.push(['','','CUSTO DIRETO TOTAL','','','',tot.cd]); kinds.push('T');
+  return {sheet:'Analítica',title:'Planilha orçamentária analítica (custo direto)',cols:[{h:'Item',t:'s',w:8},{h:'Código',t:'s',w:11},{h:'Descrição',t:'s',w:64},{h:'Und',t:'s',w:6},{h:'Quant. / Coef.',t:'q',w:12},{h:'Custo unit. (R$)',t:'m',w:13},{h:'Total (R$)',t:'m',w:14}],rows:out,kinds}; }
+function specIns(o,eF='*'){ const {list}=explodeBudget(o,eF); const tot=list.reduce((s,x)=>s+x.v,0); const rows=list.map(x=>[x.c,x.bl||baseShort(S.bases[x.b]),x.d,TL[x.t],x.u,x.q,x.p,r2(x.v),r2(tot?x.v/tot*100:0)]); rows.push(['','','TOTAL','','','','',r2(tot),100]);
+  return {sheet:'Insumos',title:'Relação de insumos extraída das composições',cols:[{h:'Código',t:'s',w:11},{h:'Base',t:'s',w:11},{h:'Descrição',t:'s',w:60},{h:'Tipo',t:'s',w:13},{h:'Und',t:'s',w:6},{h:'Quantidade',t:'q',w:13},{h:'Preço unit. (R$)',t:'m',w:13},{h:'Total (R$)',t:'m',w:14},{h:'%',t:'p',w:8}],rows,kinds:rows.map((_,i)=>i===rows.length-1?'T':'V')}; }
+function specABC(o,mode){ const A=num(o.abcA)||80,B=num(o.abcB)||95; const list=mode==='serv'?abcServ(o):abcClass(explodeBudget(o).list,A,B);
+  const rows=list.map((x,i)=>[i+1,x.cl,mode==='serv'?`${x.n} · ${x.c}`:x.c,x.d,x.u,x.q,x.p,r2(x.v),r2(x.pct),r2(x.cum)]);
+  return {sheet:mode==='serv'?'ABC Serviços':'ABC Insumos',title:`Curva ABC de ${mode==='serv'?'serviços (preço com BDI)':'insumos (custo direto)'} — A até ${A}%, B até ${B}%`,cols:[{h:'Ordem',t:'s',w:6},{h:'Classe',t:'s',w:7},{h:mode==='serv'?'Item · Código':'Código',t:'s',w:16},{h:'Descrição',t:'s',w:58},{h:'Und',t:'s',w:6},{h:'Quant.',t:'q',w:12},{h:mode==='serv'?'Preço unit. (R$)':'Custo unit. (R$)',t:'m',w:13},{h:'Total (R$)',t:'m',w:14},{h:'%',t:'p',w:8},{h:'% acum.',t:'p',w:9}],rows,kinds:rows.map(()=>'V')}; }
+function specCrono(o){ const {grp,tot}=calc(o), es=etapas(o), N=Math.max(1,Math.min(60,Math.round(num(o.prazo)||1))); const mon=Array(N).fill(0), rows=[], kinds=[];
+  for(const e of es){ const v=grp[e.id]?.pv||0, arr=(o.crono?.[e.id]||[]).slice(0,N); while(arr.length<N) arr.push(0); rows.push([e.d,v,...arr.map(p=>num(p)||0)]); kinds.push('V'); rows.push(['   R$','',...arr.map(p=>r2(v*(num(p)||0)/100))]); kinds.push('I'); arr.forEach((p,m)=>mon[m]+=v*(num(p)||0)/100); }
+  let acc=0; const cum=mon.map(v=>acc+=v);
+  rows.push(['Desembolso mensal (R$)',tot.pv,...mon.map(r2)]); kinds.push('T'); rows.push(['Acumulado (R$)','',...cum.map(r2)]); kinds.push('T'); rows.push(['Acumulado (%)','',...cum.map(v=>r2(tot.pv?v/tot.pv*100:0))]); kinds.push('T');
+  return {sheet:'Cronograma',title:'Cronograma físico-financeiro',cols:[{h:'Etapa',t:'s',w:36},{h:'Valor (R$)',t:'m',w:14},...mon.map((_,m)=>({h:`Mês ${m+1}`,t:'m',w:12}))],rows,kinds,pct:true}; }
+function specBDI(o){ const b=o.bdi; const L=[['Administração central (AC)','ac'],['Seguro (S)','s'],['Garantia (G)','g'],['Risco (R)','r'],['Despesas financeiras (DF)','df'],['Lucro (L)','l'],['PIS','pis'],['COFINS','cofins'],['ISS','iss'],['CPRB','cprb']];
+  const rows=b.manual?[['BDI informado manualmente',num(b.v)||0]]:L.map(([l,k])=>[l,num(b[k])||0]); rows.push(['BDI resultante',r2(bdiOf(o)*100)]); rows.push(['BDI diferenciado (B₂)',num(o.bdi2)||0]);
+  return {sheet:'BDI',title:'Composição do BDI — [(1+AC+S+R+G)(1+DF)(1+L)]/(1−I) − 1',cols:[{h:'Parcela',t:'s',w:40},{h:'%',t:'p',w:10}],rows,kinds:rows.map((_,i)=>i>=rows.length-2?'T':'V')}; }
+function specsFor(r,o){ return {sint:[specSint(o)],anal:[specAnal(o)],ins:[specIns(o,S.view==='ins'?S.insF.e:'*')],abc:[specABC(o,S.abc)],abcS:[specABC(o,'serv')],abcI:[specABC(o,'ins')],crono:[specCrono(o)],bdiR:[specBDI(o)],
+  all:[specSint(o),specAnal(o),specIns(o),specABC(o,'serv'),specABC(o,'ins'),specCrono(o),specBDI(o)]}[r]; }
+function fmtCell(v,t,crono,j){ if(typeof v!=='number') return v??''; if(crono&&j>=2) return R(v); return t==='q'?Q(v):t==='p'?P(v):R(v); }
+function slug(s){ return norm(s).replace(/[^A-Z0-9]+/g,'-').replace(/^-|-$/g,'').toLowerCase().slice(0,50)||'orcamento'; }
+async function saveFile(filename,data){ try{ const blob=data instanceof Blob?data:new Blob([data],{type:filename.endsWith('.json')?'application/json':'application/octet-stream'}); const url=URL.createObjectURL(blob);
+  const a=document.createElement('a'); a.href=url; a.download=filename; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),5000); toast('Arquivo baixado: '+filename); }catch(e){ toast('Não foi possível gerar o arquivo.'); } }
+function xlsxBlob(specs,o){ const wb=XLSX.utils.book_new();
+  for(const sp of specs){ const h=head(o,sp.title); const aoa=[...h.map(x=>[x]),[],sp.cols.map(c=>c.h),...sp.rows]; const ws=XLSX.utils.aoa_to_sheet(aoa); ws['!cols']=sp.cols.map(c=>({wch:c.w||12}));
+    const start=h.length+2, rg=XLSX.utils.decode_range(ws['!ref']);
+    for(let r=start;r<=rg.e.r;r++) for(let c=0;c<=rg.e.c;c++){ const cell=ws[XLSX.utils.encode_cell({r,c})]; if(cell&&cell.t==='n'){ const kind=sp.kinds[r-start]; let t=sp.cols[c]?.t; if(sp.pct&&c>=2&&kind==='V') t='p'; if(sp.pct&&c>=2&&r===rg.e.r) t='p'; cell.z=t==='q'?'#,##0.0000':t==='p'?'0.00"%"':'#,##0.00'; } }
+    XLSX.utils.book_append_sheet(wb,ws,sp.sheet.slice(0,31)); }
+  return new Blob([XLSX.write(wb,{bookType:'xlsx',type:'array'})]); }
+function pdfBlob(specs,o){ const {jsPDF}=window.jspdf; const doc=new jsPDF({orientation:'landscape',unit:'mm',format:'a4'}); const W=doc.internal.pageSize.getWidth();
+  specs.forEach((sp,i)=>{ if(i) doc.addPage(); const h=head(o,sp.title);
+    const drawHead=()=>{ doc.setFont('helvetica','bold'); doc.setFontSize(12); doc.setTextColor(20,32,43); doc.text(h[0],10,12); doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(86,101,115); doc.text(h.slice(1),10,17); doc.setDrawColor(29,90,148); doc.setLineWidth(0.5); doc.line(10,29,W-10,29); };
+    const numCols={}; sp.cols.forEach((c,j)=>{ if(c.t!=='s') numCols[j]={halign:'right'}; });
+    doc.autoTable({startY:32,margin:{left:10,right:10,top:32},head:[sp.cols.map(c=>c.h)],body:sp.rows.map((r,ri)=>r.map((v,j)=>{ let t=sp.cols[j]?.t; if(sp.pct&&j>=2&&(sp.kinds[ri]==='V'||ri===sp.rows.length-1)) t='p'; return fmtCell(v,t); })),
+      styles:{font:'helvetica',fontSize:7,cellPadding:1.1,lineColor:[205,213,220],lineWidth:0.1,textColor:[20,32,43]},headStyles:{fillColor:[29,90,148],textColor:255,fontStyle:'bold'},columnStyles:numCols,
+      didParseCell:d=>{ if(d.section!=='body') return; const k=sp.kinds[d.row.index]; if(k==='E'){ d.cell.styles.fontStyle='bold'; d.cell.styles.fillColor=[219,231,242]; } else if(k==='S'){ d.cell.styles.fontStyle='bold'; d.cell.styles.fillColor=[234,238,242]; } else if(k==='T'){ d.cell.styles.fontStyle='bold'; } else if(k==='I'){ d.cell.styles.textColor=[86,101,115]; } },
+      didDrawPage:drawHead }); });
+  const n=doc.getNumberOfPages(); for(let p=1;p<=n;p++){ doc.setPage(p); doc.setFontSize(7); doc.setTextColor(120); doc.text(`OrçaLivre · ${o.nome||''} · página ${p} de ${n}`,W-10,doc.internal.pageSize.getHeight()-6,{align:'right'}); }
+  return doc.output('blob'); }
+async function exportRep(r,f){ const o=S.cur; if(!o) return; const specs=specsFor(r,o); const name=`${slug(o.nome)}-${r==='all'?'completo':slug(specs[0].sheet)}`;
+  if(f==='xlsx'){ if(!window.XLSX){ toast('O gerador de Excel não carregou. Recarregue a página.'); return; } await saveFile(name+'.xlsx',xlsxBlob(specs,o)); }
+  else{ if(!window.jspdf){ toast('O gerador de PDF não carregou. Recarregue a página.'); return; } await saveFile(name+'.pdf',pdfBlob(specs,o)); } }
+async function copyRep(r){ const o=S.cur; const sp=specsFor(r,o)[0]; const lines=[sp.cols.map(c=>c.h).join('\t'),...sp.rows.map((row,ri)=>row.map((v,j)=>{ let t=sp.cols[j]?.t; if(sp.pct&&j>=2&&sp.kinds[ri]==='V') t='p'; return String(fmtCell(v,t)).replace(/\t|\n/g,' '); }).join('\t'))].join('\n');
+  try{ await navigator.clipboard.writeText(lines); toast('Tabela copiada. Cole no Excel ou no Google Planilhas.'); }
+  catch{ modal(()=>dlg('<h2 style="margin:0">Copiar tabela</h2>',`<p class="note" style="margin:0">Selecione o texto abaixo e copie (Ctrl+C).</p><textarea rows="14" id="cpTxt" readonly>${esc(lines)}</textarea>`,'<button class="btn" data-act="close">Fechar</button>',true)); setTimeout(()=>{ const t=$('#cpTxt'); if(t){ t.focus(); t.select(); } },30); } }
+async function backup(){ const o=S.cur; const own=new Set(); const walk=(b,t,c,d=0)=>{ if(b!=='PROPRIA'||d>20) return; own.add((t==='C'?'C|':'I|')+c); if(t==='C') for(const x of S.bases.PROPRIA.comps[c]?.it||[]) walk(x.b,x.t,x.c,d+1); };
+  for(const it of o.items) if(it.k==='V'&&it.b==='PROPRIA') walk('PROPRIA',it.t,it.c);
+  const docs=S.docs.filter(d=>(d.kind==='cpu'&&own.has('C|'+d.c))||(d.kind==='ins'&&own.has('I|'+d.c)));
+  const data=JSON.stringify({app:'OrcaLivre',v:1,orcamento:{...o,ex:undefined},proprios:docs},null,1); await saveFile(slug(o.nome)+'-backup.json',data); }
+function importJson(file){ const fr=new FileReader(); fr.onload=async()=>{ try{ const j=JSON.parse(fr.result); if(!j.orcamento||!Array.isArray(j.orcamento.items)) throw 0;
+    for(const d of j.proprios||[]){ if(!S.docs.some(x=>x.kind===d.kind&&x.c===d.c)) await Store.save({...d,id:uid()}); }
+    const o={...j.orcamento,id:uid(),kind:'orc',ex:false,upd:Date.now()}; await Store.save(o); rebuildOwn(); S.cur=o; toast('Backup importado: '+o.nome); go('plan'); }catch{ toast('Arquivo de backup inválido.'); } }; fr.readAsText(file); }
+
+/* ============ ações ============ */
+function addRef(b,t,c,qty){ const info=refInfo(b,t,c); if(!info||!S.cur) return; const cu=refUnit(b,t,c)||0;
+  mutate(o=>insertItem(o,{id:uid(),k:'V',t,b,bl:baseShort(S.bases[b]),c,d:info.d,u:info.u,q:qty,cu:r2(cu)}),{rerender:S.view==='plan'}); if(S.view!=='plan') render(); toast('Adicionado: '+info.d.slice(0,60)); }
+const ACT={
+  go:d=>go(d.v), entrar:()=>authModal('in'), authMode:d=>{ S.authMode=d.m; remodal(); }, authGo:()=>authGo(), passGo:()=>passGo(),
+  sair:async()=>{ await Store.sb.auth.signOut(); toast('Você saiu da conta.'); }, open:d=>openBudget(d.id), close:()=>closeModal(), ok:()=>{ const f=S.onOk; closeModal(); if(f) f(); },
+  newOrc:()=>newOrcModal(),
+  createOrc:async()=>{ const f=readForm('#fNew'); const o=newBudget({...f,base:pkId(S.pk.new)}); await Store.save(o); closeModal(); S.cur=o; S.sel=null; S.pk.plan=pkFromId(o.base); lsSet('orcalivre.last',o.id); go('plan'); ensureBudget(o); },
+  dupOrc:async d=>{ const src=d.id==='exemplo'?S.example:S.docs.find(x=>x.id===d.id); const c=JSON.parse(JSON.stringify(src)); c.id=uid(); c.ex=false; c.nome=src.nome+' (cópia)'; c.upd=Date.now(); await Store.save(c); render(); toast('Orçamento duplicado.'); },
+  delOrc:d=>{ const o=S.docs.find(x=>x.id===d.id); confirmBox(`Excluir o orçamento <b>${esc(o.nome)}</b>? Essa ação não pode ser desfeita.`,'Excluir',async()=>{ await Store.del(d.id); if(S.cur&&S.cur.id===d.id) S.cur=null; render(); toast('Orçamento excluído.'); }); },
+  addE:()=>mutate(o=>insertItem(o,{id:uid(),k:'E',d:'NOVA ETAPA'})),
+  addS:()=>mutate(o=>insertItem(o,{id:uid(),k:'S',d:'NOVA SUBETAPA'})),
+  addV:()=>addModal(), addM:()=>manualModal(),
+  saveMan:()=>{ const f=readForm('#fMan'); if(!str(f.d)){ toast('Informe a descrição.'); return; } closeModal(); mutate(o=>insertItem(o,{id:uid(),k:'V',t:'M',b:'',bl:str(f.bl).toUpperCase()||'COTAÇÃO',c:str(f.c),d:str(f.d).toUpperCase(),u:str(f.u).toUpperCase(),q:num(f.q)||0,cu:r2(num(f.cu)||0)})); },
+  addRef:d=>{ const qi=$('#addQty'); const q=qi?(num(qi.value)||1):1; if(qi) S.addQty=q; addRef(d.b,d.t,d.c,q); },
+  mv:d=>mutate(o=>moveItem(o,d.id,+d.d)),
+  del:d=>{ const o=S.cur, it=o.items.find(x=>x.id===d.id); if(!it) return; if(it.k==='V') return mutate(o=>delItem(o,d.id)); const n=o.items.slice(o.items.indexOf(it)+1,blockEnd(o.items,o.items.indexOf(it))).filter(x=>x.k==='V').length;
+    if(!n) return mutate(o=>delItem(o,d.id)); confirmBox(`Excluir <b>${esc(it.d)}</b> e os ${n} serviço(s) dentro dela?`,'Excluir',()=>mutate(o=>delItem(o,d.id))); },
+  bd2:d=>mutate(o=>{ const it=o.items.find(x=>x.id===d.id); it.bd2=!it.bd2; }),
+  comp:d=>compModal(d.b,d.t,d.c),
+  tog:d=>{ S.exp.has(d.k)?S.exp.delete(d.k):S.exp.add(d.k); remodal(); },
+  abcm:d=>{ S.abc=d.m; render(); },
+  cronoU:()=>mutate(o=>{ const N=Math.max(1,Math.round(num(o.prazo)||1)); o.crono={}; for(const e of etapas(o)){ const a=Array(N).fill(r2(100/N)); a[N-1]=r2(100-r2(100/N)*(N-1)); o.crono[e.id]=a; } }),
+  cronoS:()=>mutate(o=>{ o.crono=stagger(o); }),
+  cmpUF:()=>cmpUF(),
+  applyRef:async()=>{ const bid=pkId(S.pk.plan); const b=await ensureBase(bid); if(!b){ toast('Não foi possível carregar essa referência.'); return; }
+    const np=parseId(bid); let ok=0,miss=0,cp='';
+    mutate(o=>{ for(const it of o.items){ if(it.k!=='V'||it.t==='M') continue;
+        if(it.b==='PROPRIA'){ const u=refUnit('PROPRIA',it.t,it.c); if(u!=null){ it.cu=r2(u); ok++; } continue; }
+        const info=refInfo(bid,it.t,it.c), u=info?refUnit(bid,it.t,it.c):null; if(!info||u==null){ miss++; continue; }
+        it.b=bid; it.bl=baseShort(b); it.cu=r2(u); it.d=info.d; it.u=info.u; ok++; }
+      o.base=bid; if(np&&np.src==='SINAPI'&&!o.bdi.manual){ const want=np.reg==='CD'?4.5:0, cur=num(o.bdi.cprb)||0; if((cur===0||cur===4.5)&&cur!==want){ o.bdi.cprb=want; cp=want?' CPRB de 4,5% incluída no BDI.':' CPRB retirada do BDI.'; } } });
+    S.pk.plan=pkFromId(S.cur.base); render(); toast(`${ok} serviço(s) reprecificado(s) com ${labelOf(bid)}${miss?`; ${miss} sem o código nessa base (mantidos)`:''}.${cp}`); },
+  exp:d=>exportRep(d.r,d.f), copy:d=>copyRep(d.r), backup:()=>backup(),
+  imp:()=>impModal(), doImp:()=>doImport(),
+  delBase:d=>{ const b=S.bases[d.id]; confirmBox(`Remover a base <b>${esc(b.nome||baseLong(b))}</b> deste navegador? Os orçamentos mantêm os preços já lançados.`,'Remover',async()=>{ await IDB.del(d.id); delete S.bases[d.id]; S.cache.clear(); render(); }); },
+  newCpu:()=>cpuModal(), editCpu:d=>cpuModal(S.docs.find(x=>x.id===d.id)),
+  dupCpu:()=>{ const {b,c}=S.det, src=S.bases[b].comps[c]; cpuModal(null); Object.assign(S.ed,{d:src.d+' (ADAPTADA)',u:src.u,g:src.g||'',it:(src.it||[]).map(x=>({t:x.t,b:x.b||b,c:x.c,q:x.q}))}); remodal(); },
+  cpuAdd:d=>{ syncCpuForm(); S.ed.it.push({t:d.t,b:d.b,c:d.c,q:1}); remodal(); },
+  cpuDel:d=>{ syncCpuForm(); S.ed.it.splice(+d.i,1); remodal(); },
+  cpuSave:async()=>{ syncCpuForm(); const e=S.ed; if(!e.c||!e.d){ toast('Informe código e descrição.'); return; } if(S.docs.some(x=>x.kind==='cpu'&&x.c===e.c&&x.id!==e.id)){ toast('Já existe uma composição própria com esse código.'); return; }
+    if(e.it.some(x=>x.b==='PROPRIA'&&x.t==='C'&&x.c===e.c)){ toast('A composição não pode conter ela mesma.'); return; }
+    await Store.save(e); rebuildOwn(); closeModal(); render(); toast('Composição salva.'); },
+  newIns:()=>insModal(), editIns:d=>insModal(S.docs.find(x=>x.id===d.id)),
+  insSave:async()=>{ const f=readForm('#fIns'); const id=$('#fIns').dataset.id; if(!str(f.c)||!str(f.d)){ toast('Informe código e descrição.'); return; } if(S.docs.some(x=>x.kind==='ins'&&x.c===str(f.c)&&x.id!==id)){ toast('Já existe um insumo próprio com esse código.'); return; }
+    await Store.save({id,kind:'ins',c:str(f.c),d:str(f.d).toUpperCase(),u:str(f.u).toUpperCase(),p:num(f.p)||0,t:f.t,fonte:str(f.fonte)}); rebuildOwn(); closeModal(); render(); toast('Insumo salvo.'); },
+  delOwn:d=>{ const x=S.docs.find(y=>y.id===d.id); confirmBox(`Excluir <b>${esc(x.c)} · ${esc(x.d)}</b>? Serviços já lançados mantêm o preço, mas deixam de ter decomposição.`,'Excluir',async()=>{ await Store.del(d.id); rebuildOwn(); render(); }); }
+};
+function syncCpuForm(){ const f=readForm('#fCpu'); Object.assign(S.ed,{c:str(f.c),d:str(f.d).toUpperCase(),u:str(f.u).toUpperCase(),g:str(f.g)}); }
+
+/* ============ eventos ============ */
+document.addEventListener('click',e=>{
+  const a=e.target.closest('[data-act]'); if(a){ e.preventDefault(); const fn=ACT[a.dataset.act]; if(fn) fn(a.dataset,a,e); return; }
+  if(e.target===$('#modal')){ closeModal(); return; }
+  const row=e.target.closest('tr[data-row]'); if(row){ S.sel=row.dataset.row; document.querySelectorAll('tr[data-row].sel').forEach(r=>r.classList.remove('sel')); row.classList.add('sel'); }
+});
+document.addEventListener('submit',e=>{ e.preventDefault(); if(e.target.id==='fAuth') authGo(); if(e.target.id==='fPass') passGo(); });
+document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&!$('#modal').hidden) closeModal(); if(e.key==='Enter'&&e.target.closest('#fAuth,#fPass')){ e.preventDefault(); e.target.closest('#fAuth')?authGo():passGo(); return; } if(e.key==='Enter'&&e.target.matches('input.cell,input[data-bind],input[data-bdi],input[data-cr]')) e.target.blur(); });
+document.addEventListener('input',e=>{ const t=e.target;
+  if(t.dataset.sq&&t.dataset.k==='q'){ const key=t.dataset.sq, st=qState(key); st.q=t.value; clearTimeout(t._d); t._d=setTimeout(()=>refreshRes(key),160); }
+  if(t.dataset.live==='insF.q'){ S.insF.q=t.value; clearTimeout(t._d); t._d=setTimeout(()=>{ const o=S.cur, F=S.insF; const {list}=explodeBudget(o,F.e); const tq=norm(F.q).split(/\s+/).filter(Boolean); const vis=list.filter(x=>(F.t==='*'||x.t===F.t)&&tq.every(w=>norm(x.c+' '+x.d).includes(w))); $('#insTbl').innerHTML=insTable(vis,list.reduce((s,x)=>s+x.v,0)); },200); }
+});
+document.addEventListener('change',e=>{ const t=e.target, ds=t.dataset;
+  if(t.id==='impJson'&&t.files[0]) return importJson(t.files[0]);
+  if(t.id==='impFile'&&t.files[0]) return readImpFile(t.files[0]);
+  if(ds.sq&&ds.k!=='q'){ qState(ds.sq)[ds.k]=t.value; refreshRes(ds.sq); return; }
+  if(ds.pk){ const key=ds.pk, pk=(key==='plan'||key==='new')?S.pk[key]:qState(key).pk; pk[ds.k]=t.value; if(!pk.mes) Object.assign(pk,{mes:latestMes(),uf:'SP',reg:'SD'});
+    if(key==='plan'||key==='q'){ render(); return; } if(key==='cpu') syncCpuForm(); if(key==='new'){ const f=readForm('#fNew'); remodal(); for(const [k,v] of Object.entries(f)){ const e=$('#fNew [name="'+k+'"]'); if(e) e.value=v; } return; } remodal(); return; }
+  if(ds.set){ const [o,k]=ds.set.split('.'); S[o][k]=t.value; render(); return; }
+  if(ds.bind!=null){ const k=ds.bind; let v=t.value; if(ds.num!=null){ v=num(v); if(!isFinite(v)) v=0; }
+    mutate(o=>{ o[k]=v; if(k==='prazo'){ o.prazo=Math.max(1,Math.min(60,Math.round(v)||1)); } },{rerender:!['nome','cliente','local'].includes(k)}); if(['nome','cliente','local'].includes(k)) renderCtx(); return; }
+  if(ds.q){ const v=num(t.value); mutate(o=>{ const it=o.items.find(x=>x.id===ds.q); it.q=isFinite(v)?v:0; }); return; }
+  if(ds.cu){ const v=num(t.value); mutate(o=>{ const it=o.items.find(x=>x.id===ds.cu); it.cu=r2(isFinite(v)?v:0); }); return; }
+  if(ds.d){ mutate(o=>{ o.items.find(x=>x.id===ds.d).d=t.value.toUpperCase(); }); return; }
+  if(ds.fd){ mutate(o=>{ o.items.find(x=>x.id===ds.fd).d=t.value.toUpperCase(); },{rerender:false}); return; }
+  if(ds.fu){ mutate(o=>{ o.items.find(x=>x.id===ds.fu).u=t.value.toUpperCase(); },{rerender:false}); return; }
+  if(ds.fc){ mutate(o=>{ o.items.find(x=>x.id===ds.fc).c=t.value; },{rerender:false}); return; }
+  if(ds.cr){ const v=num(t.value); mutate(o=>{ o.crono=o.crono||{}; const N=Math.max(1,Math.round(num(o.prazo)||1)); const a=(o.crono[ds.cr]||[]).slice(0,N); while(a.length<N) a.push(0); a[+ds.m]=isFinite(v)?r2(v):0; o.crono[ds.cr]=a; }); return; }
+  if(ds.bdi){ const v=num(t.value); mutate(o=>{ o.bdi[ds.bdi]=isFinite(v)?v:0; }); return; }
+  if(ds.bdim!=null){ mutate(o=>{ o.bdi.manual=t.checked; if(t.checked) o.bdi.v=r2(bdiOf({bdi:{...o.bdi,manual:false}})*100); }); return; }
+  if(ds.cq!=null){ const v=num(t.value); syncCpuForm(); S.ed.it[+ds.cq].q=isFinite(v)?v:0; remodal(); return; }
+  if(ds.meta){ const I=S.imp; I.meta[ds.meta]=ds.meta==='uf'?t.value.toUpperCase():t.value; if(ds.meta==='uf'||ds.meta==='regime'){ if(ds.meta==='regime') for(const k of ['ins','comp','an']){ I.blk[k]={sheet:guessSheet(k),hdr:null,cols:{}}; } for(const k of ['ins','comp','an']) guessBlk(k); remodal(); } return; }
+  if(ds.imp){ const b=S.imp.blk[ds.imp]; if(ds.k==='sheet'){ b.sheet=t.value; b.hdr=null; guessBlk(ds.imp); } else if(ds.k==='hdr'){ b.hdr=Math.max(0,(parseInt(t.value)||1)-1); guessBlk(ds.imp); } else b.cols[ds.k.slice(4)]=+t.value; remodal(); return; }
+});
+
+/* ============ início ============ */
+(async function boot(){
+  rebuildOwn(); render();
+  try{ PUB.man=await getJSON('dados/bases.json'); }catch{ PUB.man=null; }
+  S.q.pk=defPk(); ensureBase(pkId(defPk()));
+  await IDB.open(); for(const b of await IDB.all()) S.bases[b.id]=b;
+  await Store.init(); await loadDocs(Store.mode==='db');
+  const last=lsGet('orcalivre.last',null); const o=last&&S.docs.find(d=>d.id===last&&d.kind==='orc');
+  if(o){ S.cur=o; S.view='plan'; S.pk.plan=pkFromId(o.base); ensureBudget(o); }
+  const h=(location.hash||'').slice(1); if(h&&VIEWS[h]) S.view=h;
+  render();
+})();
+</script>
+</body>
+</html>
