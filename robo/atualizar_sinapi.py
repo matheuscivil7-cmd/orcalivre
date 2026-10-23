@@ -400,5 +400,44 @@ def main():
             f.write("novos=" + ",".join(n["mes"] for n in novos) + "\n")
 
 
+# --- ajustes de leitura da planilha oficial ---
+# A planilha da Caixa declara dimensões incorretas nas abas; no modo de leitura rápida isso
+# faz o openpyxl enxergar só a primeira célula. reset_dimensions() força a leitura completa.
+_load_orig = openpyxl.load_workbook
+
+
+def _load_reset(*a, **k):
+    wb = _load_orig(*a, **k)
+    for ws in wb.worksheets:
+        if hasattr(ws, "reset_dimensions"):
+            ws.reset_dimensions()
+    return wb
+
+
+openpyxl.load_workbook = _load_reset
+
+_pr_orig = planilha_referencia
+
+
+def planilha_referencia(caminho, pasta):
+    if caminho.lower().endswith(".zip"):
+        with zipfile.ZipFile(caminho) as z:
+            log("Arquivos no pacote:", z.namelist())
+    return _pr_orig(caminho, pasta)
+
+
+_cab_orig = achar_cabecalho
+
+
+def achar_cabecalho(rows, *padroes):
+    try:
+        return _cab_orig(rows, *padroes)
+    except SystemExit:
+        log("Primeiras linhas da aba (diagnóstico):")
+        for r in rows[:14]:
+            log("  ", [str(c)[:30] for c in (r or [])[:8]])
+        raise
+
+
 if __name__ == "__main__":
     main()
