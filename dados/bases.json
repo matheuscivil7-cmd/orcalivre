@@ -46,17 +46,15 @@
     "ins": 6120,
     "comp": 10547,
     "an": 56281,
-    "comp_sem_preco_uf": 0,
-    "ins_preco_so_sp": 296,
-    "emissao": "11/09/2026"
+    "emissao": "11/09/2026",
+    "conferencia_sp": 0.9789
    },
    "2026-07": {
     "ins": 6120,
     "comp": 10544,
     "an": 56316,
-    "comp_sem_preco_uf": 0,
-    "ins_preco_so_sp": 296,
-    "emissao": "11/08/2026"
+    "emissao": "11/08/2026",
+    "conferencia_sp": 0.9788
    }
   },
   "fonte": "SINAPI – Caixa Econômica Federal (relatórios mensais XLSX)"
