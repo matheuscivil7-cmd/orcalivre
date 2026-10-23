@@ -40,8 +40,16 @@ def url_ok(url):
 def baixar(url, local=None):
     if LOCAL and local:
         return open(os.path.join(LOCAL, local), "rb").read()
-    with _op.open(url_ok(url), timeout=240) as r:
-        return r.read()
+    for tentativa in range(4):
+        try:
+            with _op.open(url_ok(url), timeout=300) as r:
+                return r.read()
+        except Exception as e:
+            if tentativa == 3:
+                raise
+            log(f"    nova tentativa de download ({type(e).__name__})")
+            import time
+            time.sleep(10 * (tentativa + 1))
 
 
 def pagina(url):
@@ -176,11 +184,12 @@ class Base:
 def achar_colunas(rows):
     for i, r in enumerate(rows[:200]):
         ns = [norm(c) for c in r]
-        if not any(re.search(r"\bCOD", x) for x in ns) or not any(re.search(r"DESCRI|ESPECIFICA|NOME", x) for x in ns):
+        ehcod = lambda x: (re.search(r"\bCOD", x) and "AUX" not in x and "ALPHA" not in x) or x in ("SERVICO", "ITEM")
+        if not any(ehcod(x) for x in ns) or not any(re.search(r"DESCRI|ESPECIFICA|NOME", x) for x in ns):
             continue
         col = {}
         for j, x in enumerate(ns):
-            if "cod" not in col and re.search(r"\bCOD", x) and "AUX" not in x and "ALPHA" not in x:
+            if "cod" not in col and ehcod(x):
                 col["cod"] = j
             elif "desc" not in col and re.search(r"DESCRI|ESPECIFICA|NOME", x):
                 col["desc"] = j
