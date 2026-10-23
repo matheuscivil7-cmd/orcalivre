@@ -198,12 +198,13 @@ def achar_colunas(rows):
     return None, None
 
 
-def tabela_precos(base, reg, rows, prefixo_grupo="", como="comp", dica_tipo="", cols=None):
+def tabela_precos(base, reg, rows, prefixo_grupo="", como="comp", dica_tipo="", cols=None, ns=""):
     h, col = achar_colunas(rows)
     if cols and col is not None:
         col.update(cols)
     if col is None:
-        raise ValueError("cabeçalho não encontrado")
+        amostra = [[txt(c)[:25] for c in r if c is not None and txt(c)] for r in rows[:40]]
+        raise ValueError("cabeçalho não encontrado; início da planilha: " + json.dumps([a for a in amostra if a][:15], ensure_ascii=False))
     grupo, n = "", 0
     for r in rows[h + 1:]:
         def cel(k):
@@ -218,6 +219,8 @@ def tabela_precos(base, reg, rows, prefixo_grupo="", como="comp", dica_tipo="", 
             grupo = (prefixo_grupo + " · " if prefixo_grupo else "") + d[:90]
             continue
         if como == "comp":
+            if ns and c in base.comp and base.comp[c][0] != d:
+                c = f"{ns}-{c}"
             base.add_comp(reg, c, d, u, grupo, p)
         else:
             base.add_ins(reg, c, d, u, tipo_insumo(u, d, dica_tipo), p)
@@ -542,7 +545,7 @@ def sicro_ler_pacote(dados, uf):
 
 
 def sicro(forcar):
-    achados = {}
+    achados, regiao = {}, {}
     for uf, (reg, slug) in sorted(SICRO_UF.items()):
         try:
             if LOCAL:
@@ -550,12 +553,24 @@ def sicro(forcar):
                     continue
                 url, ver = None, "2026-07"
             else:
-                links = pagina(f"{SICRO}/{reg}/{slug}")
-                eds = []
-                for l in links:
-                    m = re.search(rf"/{slug}/(20\d\d)/([a-z0-9\-]+)/([a-z]+)-(20\d\d)(-revisado)?/?$", l)
-                    if m and m.group(3) in MESES:
-                        eds.append(((m.group(1), MESES.index(m.group(3)), bool(m.group(5))), l))
+                eds, vistos = [], set()
+
+                def colher(links):
+                    for l in links:
+                        m = re.search(rf"/{slug}/(20\d\d)/([a-z0-9\-]+)/([a-z]+)-(20\d\d)(-revisado)?/?$", l)
+                        if m and m.group(3) in MESES and l not in vistos:
+                            vistos.add(l)
+                            eds.append(((m.group(1), MESES.index(m.group(3)), bool(m.group(5))), l))
+                    return links
+                ls = colher(regiao.get(reg) or regiao.setdefault(reg, pagina(f"{SICRO}/{reg}/{reg}")))
+                if not eds:
+                    try:
+                        ls = colher(pagina(f"{SICRO}/{reg}/{slug}"))
+                    except Exception:
+                        ls = []
+                    anos = sorted({l for l in ls if re.search(rf"/{slug}/20\d\d/?$", l)}, reverse=True)[:2]
+                    for a in anos:
+                        colher(pagina(a))
                 if not eds:
                     log(f"  SICRO {uf}: nenhuma edição encontrada")
                     continue
@@ -616,7 +631,7 @@ def sudecap(forcar):
 SIURB = "https://prefeitura.sp.gov.br/web/obras/w/tabelas_de_custos/355179"
 
 
-def siurb_composicoes(base, reg, rows, grupo):
+def siurb_composicoes(base, reg, rows, grupo, itens=True):
     cur, n = None, 0
     for r in rows[4:]:
         r = list(r) + [None] * 10
@@ -627,7 +642,7 @@ def siurb_composicoes(base, reg, rows, grupo):
             n += 1
             continue
         ci = codigo(r[2])
-        if cur and ci and num(r[6]) is not None:
+        if itens and cur and ci and num(r[6]) is not None:
             base.comp[cur][3] += [ci, num(r[6]), txt(r[3]), txt(r[4]), num(r[5])]
     return n
 
@@ -668,10 +683,11 @@ def siurb(forcar):
             log(f"  SIURB {k} {reg}: {tabela_precos(base, reg, rows, prefixo_grupo='Edificações' if 'edif' in k else 'Infraestrutura')}")
         else:
             comps[(reg, k)] = rows
+    primeiro = min((reg for reg, _ in comps), default="SD")
     for (reg, k), rows in sorted(comps.items()):
         g = "Edificações" if "edif" in k else "Infraestrutura" if "infra" in k else "Auxiliares"
         try:
-            log(f"  SIURB {k} {reg}: {siurb_composicoes(base, reg, rows, g)} composições analíticas")
+            log(f"  SIURB {k} {reg}: {siurb_composicoes(base, reg, rows, g, reg == primeiro)} composições analíticas")
         except Exception as e:
             log(f"  SIURB {k} {reg}: ERRO {e}")
     # converte os itens crus [código, coef, desc, und, preço] em [t, código, coef]
@@ -685,12 +701,11 @@ def siurb(forcar):
                 ci, q, d, u, p = crus[j:j + 5]
                 t = "C" if ci in base.comp else "I"
                 if t == "I" and ci not in base.ins:
-                    for reg in base.pc:
-                        base.add_ins(reg, ci, d, u, tipo_insumo(u, d), p)
+                    base.add_ins(primeiro, ci, d, u, tipo_insumo(u, d), p)
                 it += [t, ci, q]
                 soma += q * (p or 0)
             e[3] = it
-            pr = base.pc.get("SD", {}).get(c)
+            pr = base.pc.get(primeiro, {}).get(c)
             if pr:
                 tot += 1
                 conf += abs(soma - pr) <= max(0.05, 0.02 * pr)
@@ -884,7 +899,8 @@ def sanepar(forcar):
             z = zipfile.ZipFile(io.BytesIO(baixar(u, loc)))
             for n in z.namelist():
                 if n.lower().endswith((".xlsx", ".xls")):
-                    k = tabela_precos(base, "SD", linhas_planilha(z.read(n))[0][1], prefixo_grupo=re.sub(r"\s*-?\s*\w{3}\d\d$", "", nome).strip())
+                    rot = re.sub(r"\s*-?\s*\w{3}\d\d$", "", nome).strip()
+                    k = tabela_precos(base, "SD", linhas_planilha(z.read(n))[0][1], prefixo_grupo=rot, ns=re.sub(r"[^A-Z]", "", norm(rot))[:4] or "T")
                     log(f"  SANEPAR {nome}: {k} serviços")
         except Exception as e:
             log(f"  SANEPAR {nome}: ERRO {e}")
