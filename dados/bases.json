@@ -155,6 +155,61 @@
     }
    ]
   },
+  "SICRO": {
+   "n": "SICRO · DNIT (rodoviária)",
+   "vers": [
+    {
+     "v": "2026-07",
+     "m": "2026-07",
+     "ufs": [
+      "AC",
+      "AL",
+      "AM",
+      "AP",
+      "BA",
+      "CE",
+      "DF",
+      "ES",
+      "MA",
+      "MG",
+      "MS",
+      "MT",
+      "PA",
+      "PB",
+      "PE",
+      "PI",
+      "PR",
+      "RJ",
+      "RN",
+      "RO",
+      "RR",
+      "RS",
+      "SC",
+      "SE",
+      "SP"
+     ],
+     "regs": [
+      "SD"
+     ]
+    }
+   ]
+  },
+  "SIURB": {
+   "n": "SIURB · Pref. São Paulo",
+   "vers": [
+    {
+     "v": "2026-07",
+     "m": "2026-07",
+     "ufs": [
+      "SP"
+     ],
+     "regs": [
+      "SD",
+      "CD"
+     ]
+    }
+   ]
+  },
   "SUDECAP": {
    "n": "SUDECAP · Belo Horizonte",
    "vers": [
