@@ -71,7 +71,7 @@
     const own=S.docs.filter(d=>d.kind==='cpu'||d.kind==='ins').sort((a,b)=>String(a.c).localeCompare(String(b.c)));
     const si=M?.sinapi?.info||{};
     const pubs=Object.entries(PM());
-    return `<div class="head"><div><div class="eyebrow">Consulta pública de preços</div><h1>Bases de preços</h1><div class="sub">Escolha a base, a edição, o estado e o regime de encargos. Clique no código para ver a composição analítica.</div></div>
+    return `<div class="head"><div><div class="eyebrow">Consulta pública de preços</div><h1>Composições e insumos</h1><div class="sub">Pesquise antes de montar o orçamento: escolha a base, a data de referência, o estado e o regime. Clique no código para abrir a composição, ver os insumos totais e comparar datas.</div></div>
      <div class="actions"><button class="btn" data-act="newIns">Novo insumo / cotação</button><button class="btn" data-act="newCpu">Nova composição própria</button><button class="btn" data-act="imp">Importar outra base</button></div></div>
     <div class="panel flush" style="margin-bottom:16px"><div class="toolbar">${searchBar('q')}</div><div class="scroll" id="res-q">${resTable(S.q,'q')}</div></div>
     <div class="two">
@@ -87,5 +87,47 @@
     <div class="panel" style="margin-top:16px"><h2>Composições e insumos próprios</h2>${own.length?`<div class="scroll"><table class="t"><thead><tr><th>Código</th><th>Tipo</th><th>Descrição</th><th>Und</th><th class="r">Custo unit.</th><th></th></tr></thead><tbody>${own.map(d=>`<tr><td class="mono"><button class="linkish mono" data-act="comp" data-b="PROPRIA" data-t="${d.kind==='cpu'?'C':'I'}" data-c="${esc(d.c)}">${esc(d.c)}</button></td><td><span class="tt tt-${d.kind==='cpu'?'C':(d.t||'MAT')}">${d.kind==='cpu'?'COMP':TS[d.t||'MAT']}</span></td><td class="desc">${esc(d.d)}</td><td>${esc(d.u)}</td><td class="r">${R(refUnit('PROPRIA',d.kind==='cpu'?'C':'I',d.c))}</td><td class="act"><button class="btn sm" data-act="${d.kind==='cpu'?'editCpu':'editIns'}" data-id="${d.id}">Editar</button> <button class="btn sm danger" data-act="delOwn" data-id="${d.id}">Excluir</button></td></tr>`).join('')}</tbody></table></div>`
       :'<p class="note">Crie composições próprias (CPU) combinando insumos e composições de qualquer base, ou cadastre insumos de cotação de mercado.</p>'}</div>`;
   };
+  /* ---------- Pesquisa de composições e insumos (sem precisar de orçamento) ---------- */
+  { const i=NAV.findIndex(x=>x[0]==='bases'); if(i>=0){ NAV.splice(i,1); const g=NAV.findIndex(x=>x[0]==='g'&&x[1]==='Referências'); if(g>=0&&(!NAV[g+1]||NAV[g+1][0]==='g')) NAV.splice(g,1); NAV.unshift(['g','Pesquisa'],['bases','Composições e insumos','00']); } }
+
+  /* insumos totais: abre a composição até o último nível e soma os coeficientes */
+  function explode(bid,code,mult,acc,depth){ const c=S.bases[bid]?.comps[code]; if(!c) return;
+    for(const it of c.it||[]){ const b2=it.b||bid, q=mult*(+it.q||0);
+      if(it.t==='C'){ const sub=S.bases[b2]?.comps[it.c]; if(sub&&sub.it&&sub.it.length&&depth<12){ explode(b2,it.c,q,acc,depth+1); continue; } }
+      const k=b2+'|'+it.t+'|'+it.c; const e=acc.get(k)||{b:b2,t:it.t,c:it.c,q:0}; e.q+=q; acc.set(k,e); } }
+  function flatBody(b,c){ const acc=new Map(); explode(b,c,1,acc,0); const rows=[...acc.values()].map(x=>{ const info=refInfo(x.b,x.t,x.c)||{}; const un=x.t==='I'?(S.bases[x.b]?.ins[x.c]?.p??null):compUnit(x.b,x.c); const tp=x.t==='C'?'SV':(info.t||'OUT'); return {...x,info,un,tp,v:(un||0)*x.q}; }).sort((a,z)=>z.v-a.v);
+    if(!rows.length) return '<p class="note">Esta composição não tem itens detalhados nesta base.</p>';
+    const tot=rows.reduce((s,x)=>s+x.v,0), by={}; rows.forEach(x=>by[x.tp]=(by[x.tp]||0)+x.v);
+    const kp=['MAT','MO','EQ','SV','OUT'].filter(k=>by[k]).map(k=>`<div class="kpi"><div class="l">${TL[k]}</div><div class="v">R$ ${R(by[k])}</div><div class="s">${P(tot?by[k]/tot*100:0)}</div></div>`).join('');
+    return `<div class="kpis" style="margin-bottom:10px">${kp}</div><div class="res"><table class="t"><thead><tr><th>Código</th><th>Tipo</th><th>Descrição</th><th>Und</th><th class="r">Quant. por unidade</th><th class="r">Custo unit.</th><th class="r">Total</th><th class="r">%</th></tr></thead><tbody>${rows.map(x=>`<tr><td class="mono">${x.t==='C'?`<button class="linkish mono" data-act="comp" data-b="${esc(x.b)}" data-t="C" data-c="${esc(x.c)}">${esc(x.c)}</button>`:esc(x.c)}</td><td><span class="tt tt-${x.t==='C'?'C':x.tp}">${x.t==='C'?'SERV':TS[x.tp]||x.tp}</span></td><td class="desc">${esc(x.info.d||'(não encontrado)')}</td><td>${esc(x.info.u||'')}</td><td class="r">${Q(x.q)}</td><td class="r">${x.un==null?'—':R(x.un)}</td><td class="r">${R(x.v)}</td><td class="r muted">${P(tot?x.v/tot*100:0)}</td></tr>`).join('')}</tbody><tfoot><tr><td colspan="6" class="b">Soma dos insumos</td><td class="r b">${R(tot)}</td><td></td></tr></tfoot></table></div>
+      <p class="note" style="margin:0">Quantidade de cada insumo por unidade do serviço, já multiplicada pelos coeficientes das composições auxiliares. A soma pode diferir do custo oficial quando a base inclui parcelas próprias (FIC, transporte, arredondamentos).</p>`; }
+
+  /* mesmas referências em outras datas */
+  function versoes(b){ const p=parseId(b); if(!p) return [];
+    if(p.src==='SINAPI') return (PUB.man?.sinapi?.meses||[]).map(m=>[`SINAPI:${m}:${p.uf}:${p.reg}`,fmtMes(m)]);
+    if(p.src==='P'){ const I=PM()[p.s]; return (I?.vers||[]).filter(v=>v.ufs.includes(p.uf)&&v.regs.includes(p.reg)).map(v=>[`P:${p.s}:${v.v}:${p.uf}:${p.reg}`,verLabel(v)]); }
+    return []; }
+  async function loadHist(){ const {b,t,c}=S.det, key=b+'|'+t+'|'+c; if(S.hist&&S.hist.key===key) return; S.hist={key,rows:null}; remodal();
+    const vs=versoes(b); const rows=[]; for(const [id,l] of vs){ const bb=await ensureBase(id); rows.push({id,l,v:bb?refUnit(id,t,c):null}); }
+    if(S.hist&&S.hist.key===key){ S.hist.rows=rows; remodal(); } }
+  function histBody(b){ const H=S.hist; if(!H||!H.rows) return '<div class="empty"><b>Carregando as datas de referência…</b></div>';
+    if(H.rows.length<2) return '<p class="note">Esta base tem só uma data de referência disponível no momento. As próximas edições entram automaticamente.</p>';
+    const cur=H.rows.find(r=>r.id===b)?.v;
+    return `<div class="res"><table class="t"><thead><tr><th>Data de referência</th><th class="r">Custo unitário</th><th class="r">Variação vs. selecionada</th><th></th></tr></thead><tbody>${H.rows.map(r=>{ const d=cur&&r.v!=null?(r.v/cur-1)*100:null; return `<tr${r.id===b?' class="r-s"':''}><td class="b">${esc(r.l)}</td><td class="r">${r.v==null?'—':R(r.v)}</td><td class="r muted">${d==null||r.id===b?'':(d>0?'+':'')+nf2.format(d)+'%'}</td><td>${r.id!==b&&r.v!=null?`<button class="btn sm" data-act="comp" data-b="${esc(r.id)}" data-t="${esc(S.det.t)}" data-c="${esc(S.det.c)}">Abrir</button>`:''}</td></tr>`; }).join('')}</tbody></table></div>`; }
+
+  const _compModal=compModal;
+  compModal=function(b,t,c){ S.detV='arv'; return _compModal(b,t,c); };
+  const _renderComp=renderComp;
+  renderComp=function(){ const {b,t,c}=S.det, info=refInfo(b,t,c); const V=S.detV||'arv';
+    if(!info) return _renderComp();
+    const abas=t==='C'?[['arv','Abertura da composição'],['flat','Insumos totais'],['hist','Datas de referência']]:[['arv','Insumo'],['hist','Datas de referência']];
+    const seg=`<div class="seg" style="margin-top:10px">${abas.map(([k,l])=>`<button class="${V===k?'on':''}" data-act="detV" data-v="${k}">${l}</button>`).join('')}</div>`;
+    let h=_renderComp();
+    h=h.replace(/(<div class="dh"><div>)([\s\S]*?)(<\/div><button class="ib")/,(m,a,x,z)=>a+x+seg+z);
+    if(V==='arv') return h;
+    const body=V==='flat'?flatBody(b,c):histBody(b);
+    return h.replace(/<div class="db">[\s\S]*?<\/div>(<div class="df">)/,(m,df)=>`<div class="db">${body}</div>${df}`); };
+  ACT.detV=d=>{ S.detV=d.v; if(d.v==='hist') loadHist(); remodal(); };
+
   if(typeof render==='function') try{ render(); }catch(e){}
 })();
