@@ -403,8 +403,9 @@ ACT.nxChip=d=>{ aiOpen(d.q); aiSend(); };
 ACT.nxAskPq=()=>{ const q=($('#ofPq')?.value||'').trim(); aiOpen(q?`Qual composição devo usar para: ${q}?`:''); if(q) aiSend(); };
 ACT.nxExplain=()=>{ const {b,t,c}=S.det; AI.det={b,t,c}; closeModal(); aiOpen(`Explique a ${t==='C'?'composição':'o insumo'} ${c} (${nomeFonte(b)}): o que inclui, como é medida, quando usar e o que conferir no projeto.`); aiSend(); };
 ACT.nxRefAdd=d=>{ const r=AI.refs[d.k]; if(r) ACT.ofAddFrom({b:r.b,t:r.t,c:r.c}); };
+async function chamaIA(body,ms=60000){ const C=window.ORCALIVRE||{}; const ctl=new AbortController(); const to=setTimeout(()=>ctl.abort(),ms); try{ let tk=null; try{ const s=await Promise.race([Store.sb.auth.getSession(),new Promise(r=>setTimeout(()=>r(null),5000))]); tk=s?.data?.session?.access_token; }catch(e){} if(!tk){ try{ const k=Object.keys(localStorage).find(x=>/^sb-.*-auth-token$/.test(x)); tk=JSON.parse(localStorage.getItem(k)||'{}').access_token; }catch(e){} } const r=await fetch(C.supabaseUrl+'/functions/v1/assistente',{method:'POST',signal:ctl.signal,headers:{'content-type':'application/json',apikey:C.supabaseAnonKey,Authorization:'Bearer '+(tk||C.supabaseAnonKey)},body:JSON.stringify(body)}); return {status:r.status,j:await r.json().catch(()=>null)}; } finally{ clearTimeout(to); } }
 async function checkStatus(){ const el=$('#nxst'); const own=lsGet();
-  if(Store.sb){ try{ const r=await Store.sb.functions.invoke('assistente',{body:{status:true}}); AI.st=r.data||null; }catch(e){ AI.st=null; } }
+  if(Store.sb){ try{ const r=await chamaIA({status:true},15000); AI.st=r.j||null; }catch(e){ AI.st=null; } }
   const srv=AI.st&&AI.st.ok; AI.mode=srv?'srv':(own&&own.key?'own':'basic');
   if(el){ el.className='nxst'+(AI.mode!=='basic'?' on':''); el.textContent=AI.mode==='srv'?'IA ativa':AI.mode==='own'?'IA ativa · sua chave':'modo básico'; } }
 const WEL=()=>{ const ch=[['Qual composição uso para alvenaria de bloco cerâmico de 14 cm?'],['Que composição usar para contrapiso de 5 cm?'],['Qual a diferença entre preço desonerado e não desonerado?']];
@@ -449,9 +450,9 @@ async function aiSend(){ const t=$('#nxq'); const q=(t?.value||'').trim(); if(!q
   let resp=null, note='';
   if(AI.mode===undefined) await checkStatus();
   try{
-    if(AI.mode==='srv'){ const r=await Store.sb.functions.invoke('assistente',{body:{mensagens:hist,contexto:ctx}});
-      if(r.data&&r.data.texto) resp=r.data.texto;
-      else { let j=null; try{ j=await r.error?.context?.json(); }catch(e){} note=j?.erro==='login'?'Entre na sua conta para usar a IA. Resposta do modo básico:':j?.erro==='limite'?`Você atingiu o limite de ${j.limite} perguntas de hoje. Resposta do modo básico:`:'A IA não respondeu agora. Resposta do modo básico:'; } }
+    if(AI.mode==='srv'){ const r=await chamaIA({mensagens:hist,contexto:ctx}); const j=r.j;
+      if(j&&j.texto) resp=j.texto;
+      else { note=j?.erro==='login'?'Sua sessão expirou: recarregue a página ou entre de novo para usar a IA. Resposta do modo básico:':j?.erro==='limite'?`Você atingiu o limite de ${j.limite} perguntas de hoje. Resposta do modo básico:`:'A IA não respondeu agora. Resposta do modo básico:'; } }
     else if(AI.mode==='own') resp=await direto(hist,ctx);
   }catch(e){ console.error(e); note='A IA não respondeu agora ('+esc(e.message||e)+'). Resposta do modo básico:'; }
   AI.busy=false;
