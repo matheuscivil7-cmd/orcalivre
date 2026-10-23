@@ -184,7 +184,7 @@ function wordScore(tok,w,memo){ let s=memo.get(w); if(s!==undefined) return s; s
   memo.set(w,s); return s; }
 /* tokens com alternativas (sinônimos) */
 const STOP=new Set(['DE','DA','DO','DAS','DOS','E','EM','COM','PARA','A','O','AS','OS','NA','NO','POR']);
-function qtokens(q){ let raw=norm(q).split(WRE).filter(Boolean); const sem=raw.filter(t=>!STOP.has(t)); if(sem.length) raw=sem; return raw.map(t=>({t,alts:[t,...(ALT[t]||[]),...(SIN[t]&&SIN[t]!==t?[SIN[t]]:[])].map(x=>norm(x)).flatMap(x=>x.split(' ')).filter(Boolean)})); }
+function qtokens(q){ let raw=norm(q).split(WRE).filter(Boolean); const sem=raw.filter(t=>!STOP.has(t)); if(sem.length) raw=sem; const UNI=/^(CM|MM|M|M2|M3|KG|MPA|L|POL|KV|KW|W|V|A|MM2|T)$/, out=[], alt=t=>[t,...(ALT[t]||[]),...(SIN[t]&&SIN[t]!==t?[SIN[t]]:[])].map(x=>norm(x)).flatMap(x=>x.split(' ')).filter(Boolean); for(let i=0;i<raw.length;i++){ const t=raw[i]; let m; if(/^\d+$/.test(t)&&raw[i+1]&&UNI.test(raw[i+1])){ out.push({t,alts:[t,t+raw[i+1]]}); i++; continue; } if((m=t.match(/^(\d+)([A-Z]+\d?)$/))&&UNI.test(m[2])){ out.push({t:m[1],alts:[m[1],t]}); continue; } out.push({t,alts:alt(t)}); } return out; }
 function fsearch(q,ids,tipo,limit=200){
   const toks=qtokens(q); if(!toks.length) return {res:[],aprox:false};
   const memos=toks.map(tk=>tk.alts.map(()=>new Map()));
@@ -196,7 +196,7 @@ function fsearch(q,ids,tipo,limit=200){
             if(e.cn===tk.t) best=220; else if(tk.t.length>=3&&e.cn.startsWith(tk.t)) best=150;
             if(best<100){ for(let a=0;a<tk.alts.length;a++){ const memo=memos[k][a], at=tk.alts[a]; for(const w of e.w){ const s=wordScore(at,w,memo)*(a?0.9:1); if(s>best){ best=s; if(best>=100) break; } } if(best>=100) break; } }
             if(best>0){ tot+=best; hit++; } }
-          if(hit>=need){ out.push({b:bid,t:kind,c:e.c,s:tot+(hit===toks.length?50:0)-Math.min(10,e.w.length*0.4)+pri}); } } } }
+          if(hit>=need){ const t0=toks[0].alts, w0=e.w[0]||'', w1=e.w[1]||''; const lead=t0.some(a=>a.length>=3&&(w0===a||w0.startsWith(a)||stem(w0)===stem(a)))?45:t0.some(a=>a.length>=3&&(w1===a||w1.startsWith(a)))?18:0; out.push({b:bid,t:kind,c:e.c,s:tot+lead+(hit===toks.length?50:0)-Math.min(10,e.w.length*0.4)+pri}); } } } }
     return out; };
   let res=run(toks.length), aprox=false;
   if(!res.length&&toks.length>=2){ res=run(toks.length-1); aprox=true; }
@@ -446,6 +446,7 @@ VIEWS.bases=()=>{ const M=MAN(), si=M.sinapi; const imp=Object.values(S.bases).f
    <p class="note">Um robô confere a soma dos itens de cada composição contra o custo publicado antes de publicar cada edição. Ficam disponíveis as edições mais recentes de cada banco.</p>
    <h2 style="margin-top:18px">Bases importadas</h2>${imp.length?`<div class="ofsheet"><table class="ofp oflist"><tbody>${imp.map(b=>`<tr><td class="b">${esc(b.nome||baseLong(b))}</td><td>${esc(baseLong(b))}</td><td class="r">${nf0.format(Object.keys(b.comps).length)} composições</td><td class="r"><button class="btn sm danger" data-act="delBase" data-id="${b.id}">Remover</button></td></tr>`).join('')}</tbody></table></div>`:'<p class="note">Para ORSE, SEINFRA, SETOP, EMOP, FDE ou outra tabela que o robô não alcança, baixe a planilha no site oficial e use “Importar outra base”.</p>'}`; };
 
+window.OF={fsearch,hl,qtokens,escopo,carregar,dataRef,nomeFonte,fontes,ic,ofHead,LIVRES,closeMenu,norm2:words};
 /* abre direto na pesquisa quando não há orçamento */
 if(S.view==='bases') S.view='pesqC';
 try{ render(); }catch(err){ console.error(err); }
