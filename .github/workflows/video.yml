@@ -1,0 +1,28 @@
+name: Vídeo institucional (narração e telas)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  gerar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install edge-tts playwright && python -m playwright install --with-deps chromium
+      - run: python video/gerar.py /tmp/video
+      - name: Publicar no ramo video
+        run: |
+          cd /tmp/video
+          git init -b video
+          git config user.name "orcalivre-robo"
+          git config user.email "actions@users.noreply.github.com"
+          git add -A
+          git commit -m "narração e telas do vídeo"
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" video
