@@ -31,7 +31,7 @@ const css=`
 .uxbrand{display:flex;align-items:center;gap:10px;padding:18px 18px 10px;color:#fff;font:800 18px var(--f-body);letter-spacing:-.02em;white-space:nowrap;position:relative}
 .uxbrand .nxtag{font:600 9.5px var(--f-mono);color:#8a93ad;border:1px solid #2a3150;border-radius:999px;padding:2px 6px}
 .uxbrand .nxw b{background:var(--nx-grad);-webkit-background-clip:text;background-clip:text;color:transparent}
-.uxside .side{position:relative!important;top:auto!important;min-height:0!important;height:auto;flex:1 1 auto;overflow-y:auto!important;overflow-x:hidden!important;background:transparent!important;padding:4px 10px 12px!important;display:block!important;scrollbar-width:thin;scrollbar-color:#2a3150 transparent}
+.uxside .side{align-self:stretch!important;width:auto!important;min-width:0;max-width:100%;position:relative!important;top:auto!important;min-height:0!important;height:auto;flex:1 1 auto;overflow-y:auto!important;overflow-x:hidden!important;background:transparent!important;padding:4px 10px 12px!important;display:block!important;scrollbar-width:thin;scrollbar-color:#2a3150 transparent}
 .uxside .side .grp{padding:16px 12px 6px;white-space:nowrap;display:block!important}
 .uxside .side .nav{display:flex!important;width:100%;white-space:nowrap;border-bottom:0!important}
 .uxside .side .nav span{overflow:hidden;text-overflow:ellipsis}
@@ -155,11 +155,11 @@ body.uxmini .uxmini-t svg{transform:scaleX(-1)}
 .uxwel h1{margin:0;font:800 28px/1.1 var(--f-body);letter-spacing:-.03em} .uxwel p{margin:6px 0 0;color:var(--muted);font-size:13.5px}
 .uxwel .acts{display:flex;gap:8px;flex-wrap:wrap}
 .uxstats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:16px}
-.uxstats div{border-radius:18px;padding:14px 16px;background:#fff;border:1px solid var(--line);box-shadow:var(--nx-sh)}
-.uxstats div:first-child{background:var(--nx-side);border-color:var(--nx-side);color:#fff}
+.uxstats>div{border-radius:18px;padding:14px 16px;background:#fff;border:1px solid var(--line);box-shadow:var(--nx-sh)}
+.uxstats>div:first-child{background:var(--nx-side);border-color:var(--nx-side);color:#fff}
 .uxstats .l{font:700 10px var(--f-body);letter-spacing:.09em;text-transform:uppercase;color:#8a91a6}
 .uxstats .v{font:800 22px var(--f-body);letter-spacing:-.02em;margin-top:4px}
-.uxstats div:first-child .v{background:linear-gradient(90deg,#c4b5fd,#7dd3fc,#5eead4);-webkit-background-clip:text;background-clip:text;color:transparent}
+.uxstats>div:first-child .v{background:linear-gradient(90deg,#c4b5fd,#7dd3fc,#5eead4);-webkit-background-clip:text;background-clip:text;color:transparent}
 .uxgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:14px}
 .uxcard{position:relative;display:flex;flex-direction:column;gap:12px;padding:16px;border-radius:20px;background:#fff;border:1px solid var(--line);box-shadow:var(--nx-sh);transition:transform .18s,box-shadow .18s,border-color .18s;cursor:pointer}
 .uxcard:hover{transform:translateY(-3px);border-color:#d6d1ff;box-shadow:0 22px 40px -24px rgba(91,79,240,.55)}
@@ -231,7 +231,7 @@ body.uxmini .uxmini-t svg{transform:scaleX(-1)}
 .sl .two{display:grid;grid-template-columns:1.25fr 1fr;gap:28px;flex:1;min-height:0}
 .sl .pn{background:#fff;border:1px solid #e5e7f0;border-radius:22px;padding:22px 24px;min-height:0;overflow:hidden}
 .sl .pn h3{margin:0 0 14px;font:800 16px var(--f-body);color:#0b1020}
-.sl .hb{display:grid;grid-template-columns:minmax(0,1fr) 300px 120px;gap:9px 14px;align-items:center;font-size:14.5px}
+.sl .hb{display:grid;grid-template-columns:250px minmax(0,1fr) 110px;gap:15px 16px;align-items:center;font-size:15px}
 .sl .hb .lb{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#2b3245;font-weight:600}
 .sl .hb .tr{height:14px;border-radius:8px;background:#eef0f6;overflow:hidden} .sl .hb .tr i{display:block;height:100%;border-radius:8px}
 .sl .hb .vv{text-align:right;font:700 14px var(--f-mono);color:#0b1020} .sl .hb .vv small{display:block;font:600 11px var(--f-body);color:#8a91a6}
@@ -239,7 +239,7 @@ body.uxmini .uxmini-t svg{transform:scaleX(-1)}
 .sl .lg2 div{display:flex;align-items:center;gap:10px} .sl .lg2 i{width:14px;height:14px;border-radius:4px;flex:0 0 14px} .sl .lg2 b{margin-left:auto;font-family:var(--f-mono)} .sl .lg2 span{color:#6b7385}
 .sl table{width:100%;border-collapse:collapse;font-size:14px}
 .sl th{text-align:left;font:700 11px var(--f-body);letter-spacing:.08em;text-transform:uppercase;color:#8a91a6;padding:0 10px 10px;border-bottom:1px solid #e5e7f0}
-.sl td{padding:9px 10px;border-bottom:1px solid #f0f1f6;color:#2b3245;vertical-align:middle}
+.sl td{padding:8px 10px;border-bottom:1px solid #f0f1f6;color:#2b3245;vertical-align:middle}
 .sl td.d{max-width:560px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sl td.r,.sl th.r{text-align:right} .sl td.m{font-family:var(--f-mono);font-size:13px}
 .sl .cl{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:8px;color:#fff;font:800 12px var(--f-body)}
@@ -425,7 +425,7 @@ const PAL=['#7c5cf6','#4f7cff','#14c8b0','#0b1020','#a78bfa','#38bdf8','#5eead4'
 function donut(segs,size,label,sub){ const tot=segs.reduce((s,x)=>s+x.v,0)||1, r=size/2-18, c=2*Math.PI*r; let off=0;
   const arcs=segs.map(x=>{ const l=x.v/tot*c; const s=`<circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="${x.c}" stroke-width="30" stroke-dasharray="${Math.max(0,l-2).toFixed(2)} ${c.toFixed(2)}" stroke-dashoffset="${(-off).toFixed(2)}" transform="rotate(-90 ${size/2} ${size/2})"/>`; off+=l; return s; }).join('');
   return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}"><circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="#eef0f6" stroke-width="30"/>${arcs}<text x="50%" y="47%" text-anchor="middle" font-family="Manrope" font-weight="800" font-size="26" fill="#0b1020">${esc(label)}</text><text x="50%" y="58%" text-anchor="middle" font-family="Manrope" font-weight="600" font-size="13" fill="#8a91a6">${esc(sub||'')}</text></svg>`; }
-function paretoS(list){ const N=Math.min(list.length,40), it=list.slice(0,N), W=700,H=330,ml=40,mr=46,mt=14,mb=30,iw=W-ml-mr,ih=H-mt-mb; const max=Math.max(...it.map(x=>x.pct),.01), bw=iw/Math.max(N,1); let g='',b='',pts=[];
+function paretoS(list){ const N=Math.min(list.length,40), it=list.slice(0,N), W=700,H=430,ml=40,mr=46,mt=14,mb=30,iw=W-ml-mr,ih=H-mt-mb; const max=Math.max(...it.map(x=>x.pct),.01), bw=iw/Math.max(N,1); let g='',b='',pts=[];
   for(let k=0;k<=4;k++){ const y=mt+ih-ih*k/4; g+=`<line x1="${ml}" x2="${W-mr}" y1="${y}" y2="${y}" stroke="#eef0f6"/><text x="${W-mr+8}" y="${y+4}" font-size="12" fill="#8a91a6">${k*25}%</text>`; }
   it.forEach((x,i)=>{ const h=x.pct/max*ih, X=ml+i*bw; b+=`<rect x="${(X+bw*.14).toFixed(1)}" y="${(mt+ih-h).toFixed(1)}" width="${Math.max(1,bw*.72).toFixed(1)}" height="${h.toFixed(1)}" rx="3" fill="${CC[x.cl]}"/>`; pts.push(`${(X+bw/2).toFixed(1)},${(mt+ih-x.cum/100*ih).toFixed(1)}`); });
   return `<svg viewBox="0 0 ${W} ${H}" width="100%">${g}${b}<polyline points="${pts.join(' ')}" fill="none" stroke="#0b1020" stroke-width="2.5"/><text x="${ml}" y="${H-6}" font-size="12" fill="#8a91a6">${N<list.length?`Primeiros ${N} de ${list.length} serviços`:`${N} serviços`} em ordem decrescente · linha: % acumulado</text></svg>`; }
@@ -433,7 +433,7 @@ function curveSS(mon,cum,total){ const N=mon.length, W=1130,H=380,ml=74,mr=50,mt
   for(let k=0;k<=4;k++){ const y=mt+ih-ih*k/4; g+=`<line x1="${ml}" x2="${W-mr}" y1="${y}" y2="${y}" stroke="#eef0f6"/><text x="${W-mr+8}" y="${y+4}" font-size="12" fill="#8a91a6">${k*25}%</text><text x="${ml-8}" y="${y+4}" font-size="12" fill="#8a91a6" text-anchor="end">${esc(mi(mx*k/4))}</text>`; }
   mon.forEach((v,i)=>{ const h=v/mx*ih, X=ml+i*bw; b+=`<rect x="${(X+bw*.2).toFixed(1)}" y="${(mt+ih-h).toFixed(1)}" width="${(bw*.6).toFixed(1)}" height="${h.toFixed(1)}" rx="4" fill="#c9c2ff"/><text x="${(X+bw/2).toFixed(1)}" y="${H-12}" font-size="12" fill="#8a91a6" text-anchor="middle">${i+1}</text>`; pts.push(`${(X+bw/2).toFixed(1)},${(mt+ih-(total?cum[i]/total:0)*ih).toFixed(1)}`); });
   return `<svg viewBox="0 0 ${W} ${H}" width="100%">${g}${b}<polyline points="${pts.join(' ')}" fill="none" stroke="#14c8b0" stroke-width="3.5"/>${pts.map(p=>{ const [x,y]=p.split(','); return `<circle cx="${x}" cy="${y}" r="4.5" fill="#fff" stroke="#14c8b0" stroke-width="2.5"/>`; }).join('')}</svg>`; }
-function hbars(items,max){ return `<div class="hb">${items.map((x,i)=>`<div class="lb" title="${esc(x.l)}">${esc(x.l)}</div><div class="tr"><i style="width:${(max?x.v/max*100:0).toFixed(1)}%;background:${x.c||PAL[i%PAL.length]}"></i></div><div class="vv">${esc(mi(x.v))}<small>${P(x.p)}</small></div>`).join('')}</div>`; }
+function hbars(items,max){ return `<div class="hb">${items.map((x,i)=>`<div class="lb" title="${esc(x.l)}">${esc(cap(x.l))}</div><div class="tr"><i style="width:${(max?x.v/max*100:0).toFixed(1)}%;background:${x.c||PAL[i%PAL.length]}"></i></div><div class="vv">${esc(mi(x.v))}<small>${P(x.p)}</small></div>`).join('')}</div>`; }
 
 function slides(o){ const {tot,grp,bdi,rows}=calc(o); const a=num(o.area)||0, cub=num(o.cub)||0, hoje=new Date().toLocaleDateString('pt-BR');
   const es=o.items.filter(i=>i.k==='E'); const nS=rows.filter(r=>r.it.k==='V').length;
@@ -480,11 +480,11 @@ function slides(o){ const {tot,grp,bdi,rows}=calc(o); const a=num(o.area)||0, cu
       <div class="pn">${paretoS(abcS)}</div><div class="pn" style="display:flex;flex-direction:column;justify-content:center">${['A','B','C'].map(c=>`<div style="display:flex;align-items:center;gap:14px;padding:12px 0;border-bottom:1px solid #f0f1f6"><span class="cl" style="background:${CC[c]};width:40px;height:40px;font-size:16px">${c}</span><div style="flex:1"><div style="font:800 26px var(--f-body)">${P(sS[c].v/tS*100)}</div><div style="font-size:13.5px;color:#6b7385">${sS[c].n} serviços · ${P(sS[c].n/abcS.length*100)} dos itens</div></div><div style="font:700 14px var(--f-mono)">R$ ${esc(mi(sS[c].v))}</div></div>`).join('')}
       <p class="note">Classes: A até ${A}% do valor acumulado, B até ${B}%, C o restante.</p></div></div></div>${foot(S2.length+1)}`);
     add('',`<div class="acc"></div><div class="in"><div class="ey">Curva ABC · serviços</div><h2>Os 10 serviços de maior valor</h2><div class="pn" style="padding:18px 20px"><table><thead><tr><th>Cl.</th><th>Item</th><th>Descrição</th><th class="r">Quant.</th><th class="r">Total</th><th class="r">%</th><th class="r">Acum.</th></tr></thead><tbody>
-      ${abcS.slice(0,10).map(x=>`<tr><td><span class="cl" style="background:${CC[x.cl]}">${x.cl}</span></td><td class="m">${esc(x.n)}</td><td class="d" title="${esc(x.d)}">${esc(cap(x.d))}</td><td class="r m">${Q(x.q)} ${esc(x.u)}</td><td class="r m"><b>${R(x.v)}</b></td><td class="r m">${P(x.pct)}</td><td class="r m" style="color:#8a91a6">${P(x.cum)}</td></tr>`).join('')}</tbody></table></div></div>${foot(S2.length+1)}`); }
+      ${abcS.slice(0,10).map(x=>`<tr><td><span class="cl" style="background:${CC[x.cl]}">${x.cl}</span></td><td class="m">${esc(x.n)}</td><td class="d" title="${esc(x.d)}">${esc(cap(x.d))}</td><td class="r m">${nf2.format(x.q)} ${esc(x.u)}</td><td class="r m"><b>${R(x.v)}</b></td><td class="r m">${P(x.pct)}</td><td class="r m" style="color:#8a91a6">${P(x.cum)}</td></tr>`).join('')}</tbody></table></div></div>${foot(S2.length+1)}`); }
   /* 6 insumos */
   if(abcI.length){ const top=abcI.slice(0,10), mx=top[0]?.v||1;
     add('',`<div class="acc"></div><div class="in"><div class="ey">Curva ABC · insumos</div><h2>Os insumos que mais pesam no custo</h2><div class="pn" style="padding:18px 20px"><table><thead><tr><th>Cl.</th><th>Código</th><th>Descrição</th><th>Tipo</th><th class="r">Quant.</th><th style="width:170px"></th><th class="r">Custo</th><th class="r">%</th></tr></thead><tbody>
-      ${top.map(x=>`<tr><td><span class="cl" style="background:${CC[x.cl]}">${x.cl}</span></td><td class="m">${esc(x.c)}</td><td class="d" style="max-width:440px" title="${esc(x.d)}">${esc(cap(x.d))}</td><td><span style="font:700 11px var(--f-body);color:${CT[x.t]||'#6b7385'}">${esc(TS[x.t]||x.t)}</span></td><td class="r m">${Q(x.q)} ${esc(x.u)}</td><td><div style="height:10px;border-radius:6px;background:#eef0f6;overflow:hidden"><i style="display:block;height:100%;width:${(x.v/mx*100).toFixed(1)}%;background:${CT[x.t]||'#7c5cf6'};border-radius:6px"></i></div></td><td class="r m"><b>${R(x.v)}</b></td><td class="r m">${P(x.pct)}</td></tr>`).join('')}</tbody></table>
+      ${top.map(x=>`<tr><td><span class="cl" style="background:${CC[x.cl]}">${x.cl}</span></td><td class="m">${esc(x.c)}</td><td class="d" style="max-width:440px" title="${esc(x.d)}">${esc(cap(x.d))}</td><td><span style="font:700 11px var(--f-body);color:${CT[x.t]||'#6b7385'}">${esc(TS[x.t]||x.t)}</span></td><td class="r m">${nf2.format(x.q)} ${esc(x.u)}</td><td><div style="height:10px;border-radius:6px;background:#eef0f6;overflow:hidden"><i style="display:block;height:100%;width:${(x.v/mx*100).toFixed(1)}%;background:${CT[x.t]||'#7c5cf6'};border-radius:6px"></i></div></td><td class="r m"><b>${R(x.v)}</b></td><td class="r m">${P(x.pct)}</td></tr>`).join('')}</tbody></table>
       <p class="note">Custo direto decomposto pelas composições do banco (sem BDI). ${abcI.length} insumos no total.</p></div></div>${foot(S2.length+1)}`); }
   /* 7 cronograma */
   const N=Math.max(1,Math.min(60,Math.round(num(o.prazo)||0))); const cr=o.crono||{}; const mon=Array(N).fill(0); let temC=false;
@@ -509,7 +509,7 @@ function slides(o){ const {tot,grp,bdi,rows}=calc(o); const a=num(o.area)||0, cu
     <p class="note" style="font-size:14px;margin-top:22px">Preços unitários de referência dos bancos públicos na data-base indicada. Quantidades e cotações devem ser conferidas com os projetos e fornecedores antes de emitir uma proposta.</p></div></div>${foot(S2.length+1)}`);
   return S2; }
 function cap(s){ s=String(s||''); if(s!==s.toUpperCase()) return s; return s.toLowerCase().replace(/(^|[\s(/-])([a-zà-ú])/g,(m,a,b)=>a+b.toUpperCase()).replace(/\b(De|Da|Do|Das|Dos|E|Em|Com|Para|Por|A|O|As|Os|No|Na)\b/g,w=>w.toLowerCase()).replace(/^./,c=>c.toUpperCase()).replace(/\b(Af_\d+\/\d+)\b/gi,w=>w.toUpperCase()).replace(/\b(Ca|Fck|Mpa|Pvc|Pead|Cpvc|Ppr)\b/g,w=>w.toUpperCase()); }
-function brandMini(big){ const s=big?34:20; return `<svg width="${s}" height="${s}" viewBox="0 0 32 32"><defs><linearGradient id="uxdg${big?1:0}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8b5cf6"/><stop offset=".5" stop-color="#4f7cff"/><stop offset="1" stop-color="#14c8b0"/></linearGradient></defs><rect width="32" height="32" rx="9" fill="url(#uxdg${big?1:0})"/><path d="M7.5 22.5h4.6v-4.4H7.5zM13.7 22.5h4.6v-8.2h-4.6zM19.9 22.5h4.6V9.5h-4.6z" fill="#fff"/></svg>${big?'<span class="nxw">Orça<b>Livre</b></span>':'OrçaLivre'}`; }
+let BMn=0; function brandMini(big){ const s=big?34:20, gid='uxdg'+(++BMn); return `<svg width="${s}" height="${s}" viewBox="0 0 32 32"><defs><linearGradient id="${gid}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8b5cf6"/><stop offset=".5" stop-color="#4f7cff"/><stop offset="1" stop-color="#14c8b0"/></linearGradient></defs><rect width="32" height="32" rx="9" fill="url(#${gid})"/><path d="M7.5 22.5h4.6v-4.4H7.5zM13.7 22.5h4.6v-8.2h-4.6zM19.9 22.5h4.6V9.5h-4.6z" fill="#fff"/></svg>${big?'<span class="nxw">Orça<b>Livre</b></span>':'OrçaLivre'}`; }
 
 let DK={i:0,n:0};
 function deckOpen(print){ const o=S.cur; if(!o){ toast('Abra um orçamento primeiro.'); return; }
