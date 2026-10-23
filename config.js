@@ -1,7 +1,4 @@
-// Configuração do OrçaLivre — preencha com os dados do seu projeto Supabase
-// (Supabase › Project Settings › API). A chave "anon"/"publishable" é pública por natureza:
-// a segurança dos dados vem das regras de acesso (RLS) criadas pelo arquivo supabase.sql.
 window.ORCALIVRE = {
-  supabaseUrl: "",
-  supabaseAnonKey: ""
+  supabaseUrl: "https://caexsyimhdwshrwcetok.supabase.co",
+  supabaseAnonKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNhZXhzeWltaGR3c2hyd2NldG9rIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI3MzI1NDksImV4cCI6MjEwODMwODU0OX0.157oVSz4cg2f5bGyiUDSdJkwFihSl0qIfcH7wFXz7O0"
 };
