@@ -226,7 +226,7 @@ const achar=pid=>(S.lr.res||[]).find(x=>x.pid===pid)||minhas().find(d=>d.pid===p
 async function detalhe(x){ const D={x,info:null,arq:null,itens:null};
   const base=`https://pncp.gov.br/api/pncp/v1/orgaos/${x.cnpj}/compras/${x.ano}/${x.seq}`;
   const J=u=>fetch(u).then(r=>r.ok?r.json():null).catch(()=>null);
-  const [info,arq,itens]=await Promise.all([J(base),J(base+'/arquivos'),J(base+'/itens?pagina=1&tamanhoPagina=500')]);
+  const [info,arq,itens]=await Promise.all([J(`https://pncp.gov.br/api/consulta/v1/orgaos/${x.cnpj}/compras/${x.ano}/${x.seq}`),J(base+'/arquivos'),J(base+'/itens?pagina=1&tamanhoPagina=500')]);
   D.info=info; D.arq=Array.isArray(arq)?arq:[]; D.itens=Array.isArray(itens)?itens:[]; return D; }
 ACT.licDet=async d=>{ const x=achar(d.pid); if(!x||!x.cnpj){ toast('Edital sem identificação do PNCP.'); return; }
   S.ld={x,carregando:true}; modal(detHTML);
