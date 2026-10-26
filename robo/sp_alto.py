@@ -102,11 +102,12 @@ def centro(geom):
 
 def em_ponto(layer, xy, crs, campo):
     x, y = xy
-    j = wfs(layer, "&bbox=%f,%f,%f,%f,%s" % (x - 1, y - 1, x + 1, y + 1, crs), count=3)
+    j = wfs(layer, "&bbox=%f,%f,%f,%f,%s" % (x - 1, y - 1, x + 1, y + 1, crs), count=10)
     for f in j.get("features", []):
         v = f["properties"].get(campo)
-        if v: return v
+        if v and not RUIDO.search(str(v)): return v
     return None
+RUIDO = re.compile(r"pra[cç]a|canteiro|vi[aá]rio|logradouro", re.I)
 
 def lote(sql, cache):
     if sql in cache: return cache[sql]
@@ -211,17 +212,19 @@ def noticias(cache):
     lim = (HOJE - timedelta(days=240)).isoformat()
     obras = {}
     for k, r in cache.items():
-        if not r.get("relevante") or r.get("_d", "") < lim: continue
+        if not r.get("relevante") or r.get("_d", "") < lim or r.get("estagio") == "INAUGURADA": continue
         nome = (r.get("obra") or r.get("_t") or "").upper()[:160]
-        chave = hid(norm(r.get("incorporadora") or r.get("arquitetura") or ""), norm(r.get("bairro")), norm(nome)[:40])
+        bairro = (r.get("bairro") or "").strip().upper() or None; r["bairro"] = bairro
+        dono = norm(r.get("incorporadora") or "").split()[:1]
+        chave = hid(dono[0], norm(bairro)) if dono else hid(norm(r.get("arquitetura") or ""), norm(bairro), norm(nome)[:40])
         f = {"t": r.get("_t"), "url": r.get("_l"), "veiculo": r.get("_v"), "data": r.get("_d")}
         o = obras.get(chave)
         if o:
             if f["url"] and all(x["url"] != f["url"] for x in o["fontes"]): o["fontes"].append(f)
-            for c in ("arquitetura", "construtora", "incorporadora", "area_m2", "valor", "unidades"):
+            for c in ("arquitetura", "construtora", "incorporadora", "area_m2", "valor", "unidades", "detalhes"):
                 if not o.get(c) and r.get(c): o[c] = r.get(c)
             continue
-        obras[chave] = {"id": "SPN" + chave, "origem": "noticia", "obra": nome, "uso": r.get("uso") or "OUTROS", "bairro": r.get("bairro"),
+        obras[chave] = {"id": "SPN" + chave, "origem": "noticia", "obra": nome, "uso": r.get("uso") or "OUTROS", "bairro": bairro,
                         "estagio": r.get("estagio") or "ANÚNCIO", "arquitetura": r.get("arquitetura"), "construtora": r.get("construtora"),
                         "incorporadora": r.get("incorporadora"), "area_m2": r.get("area_m2"), "unidades": r.get("unidades"), "valor": r.get("valor"),
                         "detalhes": r.get("detalhes"), "pessoas": [p for p in (r.get("pessoas") or []) if isinstance(p, dict) and p.get("nome")][:5],
@@ -231,6 +234,7 @@ def noticias(cache):
 # ------------------------------------------------------------------ principal
 def main():
     lotes = json.load(open(LOTES)) if os.path.exists(LOTES) else {}
+    lotes = {k: v for k, v in lotes.items() if not (v and RUIDO.search(str(v.get("zona") or "")))}
     cache = json.load(open(CACHE)) if os.path.exists(CACHE) else {}
     anterior = {}
     if os.path.exists(OUT):
