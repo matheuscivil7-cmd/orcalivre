@@ -1,0 +1,32 @@
+name: Radar de obras privadas
+
+on:
+  schedule:
+    # Todo dia às 07h de Brasília
+    - cron: "0 10 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency: obras-privadas
+
+jobs:
+  obras:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python robo/obras_privadas.py
+      - name: Publicar no site
+        run: |
+          git config user.name "orcalivre-robo"
+          git config user.email "actions@users.noreply.github.com"
+          git add -A dados/obras
+          if git diff --cached --quiet; then echo "Nada novo."; exit 0; fi
+          git commit -m "Radar de obras privadas: atualização diária"
+          git pull --rebase || true
+          git push
