@@ -134,12 +134,15 @@ def noticias(cache):
         if not r.get("relevante") or r.get("_d", "") < lim: continue
         uf = (r.get("uf") or "").upper()
         if uf and uf not in UFS: continue
+        if SEMEMP.search(norm(r.get("empresa") or "")): r["empresa"] = None
         emp = norm(r.get("empresa") or "")
-        chave = hid(emp, uf, round((r.get("valor") or 0) / 1e7)) if emp else hid(k)
+        if emp: chave = hid(emp, uf, round((r.get("valor") or 0) / 1e7))
+        elif r.get("valor"): chave = hid("", uf, r.get("segmento"), round(r["valor"] / 1e8))
+        else: chave = hid(k)
         fonte = {"t": r.get("_t"), "url": r.get("_l"), "veiculo": r.get("_v"), "data": r.get("_d")}
         o = obras.get(chave)
         if not o:
-            o = obras[chave] = {"id": "N" + chave, "origem": "noticia", "obra": (r.get("obra") or r.get("_t") or "").upper()[:160], "empresa": r.get("empresa"),
+            o = obras[chave] = {"id": "N" + chave, "origem": "noticia", "obra": re.sub(r"^(EMPRESA )?N[AÃ]O (INFORMAD[AO]|IDENTIFICAD[AO]|DIVULGAD[AO])\s*/\s*", "", (r.get("obra") or r.get("_t") or "").upper())[:160], "empresa": r.get("empresa"),
                                 "cidade": r.get("cidade"), "uf": uf or None, "segmento": r.get("segmento") or "OUTROS", "subtipo": r.get("subtipo"), "tipo": r.get("tipo"),
                                 "estagio": r.get("estagio") or "ANÚNCIO", "valor": r.get("valor"), "area_m2": r.get("area_m2"), "unidades": r.get("unidades"),
                                 "empregos": r.get("empregos"), "inicio": r.get("inicio"), "termino": r.get("termino"), "detalhes": r.get("detalhes"),
@@ -154,21 +157,24 @@ def noticias(cache):
     for o in obras.values(): o["fontes"] = sorted(o["fontes"], key=lambda f: f["data"] or "", reverse=True)[:8]
     return list(obras.values())
 
+SEMEMP = re.compile(r"^(EMPRESA )?(NAO (INFORMAD|IDENTIFICAD|DIVULGAD|CITAD)|DESCONHECID|SIGILOS)|^(MULTINACIONAL|GRUPO|EMPRESA|INVESTIDOR|FUNDO)( [A-Z]+)?$")
+
 # ------------------------------------------------------------------ 2. BNDES
 BNDES_RES = "6f56b78c-510f-44b6-8274-78a5b7e931f4"
 OBRA_RE = re.compile(r"IMPLANT|CONSTRU|AMPLIA|EXPANS|MODERNIZ|NOVA UNIDADE|NOVA PLANTA|NOVA FABRICA|FABRICA|PLANTA|USINA|PARQUE|CENTRO DE DISTRIB|HOSPITAL|SHOPPING|HOTEL|EMPREENDIMENTO|TERMINAL|ARMAZE|GALPA|EDIFIC|COMPLEXO|LINHA DE TRANSMISS|SUBESTA")
 def seg_bndes(r):
-    s = norm(f"{r.get('subsetor_cnae_agrupado')} {r.get('setor_bndes')} {r.get('subsetor_bndes')} {r.get('descricao_do_projeto')}")
+    s = norm(f"{r.get('subsetor_cnae_agrupado')} {r.get('setor_bndes')} {r.get('subsetor_bndes')} {r.get('subsetor_cnae_nome')} {r.get('descricao_do_projeto')}")
+    if re.search(r"RESIDENC|HABITAC|LOTEAMENTO|INCORPORACAO IMOBILI", s): return "RESIDENCIAL"
     for k, v in [("ENERGIA|ELETRIC|GERACAO|EOLIC|SOLAR|FOTOVOLT|TRANSMISS", "ENERGIA"), ("SANEAMENTO|AGUA E ESGOTO|RESIDUO", "SANEAMENTO E INFRAESTRUTURA"),
                  ("LOGIST|ARMAZEN|TRANSPORTE|PORTU|TERMINAL|FERROV|RODOV", "LOGÍSTICA"), ("SAUDE|HOSPITAL", "SAÚDE"), ("EDUCA|ENSINO", "EDUCAÇÃO"),
                  ("HOTEL|TURIS|ALOJAMENTO", "HOTELARIA E TURISMO"), ("AGROPEC|AGRICULT|PECUAR|AGRO", "AGRONEGÓCIO"), ("EXTRATIVA|MINERA", "MINERAÇÃO"),
-                 ("COMERCIO|SHOPPING|VAREJ", "COMERCIAL"), ("TELECOM|DATA CENTER|INFORMAC", "DATA CENTER"), ("CONSTRUCAO|IMOBILI", "RESIDENCIAL"),
+                 ("COMERCIO|SHOPPING|VAREJ", "COMERCIAL"), ("TELECOM|DATA CENTER|INFORMAC", "DATA CENTER"),
                  ("INDUSTRIA|TRANSFORMACAO|FABRIC|QUIMIC|ALIMENT|METAL|PAPEL|CELULOSE|AUTOMOT|TEXTIL", "INDUSTRIAL")]:
         if re.search(k, s): return v
     return "OUTROS"
 
 def bndes():
-    lim = (HOJE - timedelta(days=730)).isoformat(); out = []; off = 0
+    lim = (HOJE - timedelta(days=730)).isoformat(); out = []; off = 0; vistos = {}
     base = "https://dadosabertos.bndes.gov.br/api/3/action/datastore_search?"
     while True:
         q = urllib.parse.urlencode({"resource_id": BNDES_RES, "limit": 1000, "offset": off, "sort": "data_da_contratacao desc"})
@@ -185,11 +191,19 @@ def bndes():
             if uf not in UFS: uf = None
             tipo = "AMPLIAÇÃO" if re.search(r"AMPLIA|EXPANS", norm(desc)) else "MODERNIZAÇÃO" if "MODERNIZ" in norm(desc) else "IMPLANTAÇÃO"
             cli = re.sub(r"\s+", " ", r.get("cliente") or "").strip()
-            out.append({"id": "B" + str(r.get("numero_do_contrato")), "origem": "bndes", "obra": f"{cli} / {tipo} / {(cid or uf or 'BRASIL').upper()}"[:160],
+            mo = re.search(r"(?:IMPLANTACAO|CONSTRUCAO|AMPLIACAO|EXPANSAO|MODERNIZACAO)\s+(?:E \w+ )?(?:D[AOE]S?\s+)?(.{8,70}?)(?:,| NO | NA | EM | LOCALIZAD| COM | PARA |$)", norm(desc))
+            objeto = (mo.group(1).strip() if mo else "").upper()
+            chave = norm(cli) + "|" + norm(desc)[:70]
+            if chave in vistos:
+                o = vistos[chave]; o["valor"] += v; o["contratos"] += 1
+                o["fontes"].append({"t": f"BNDES · contrato {r.get('numero_do_contrato')} · {r.get('produto')}", "url": "https://dadosabertos.bndes.gov.br/dataset/operacoes-financiamento", "veiculo": "BNDES (dados abertos)", "data": d})
+                o["criado"] = min(o["criado"], d); continue
+            out.append({"id": "B" + str(r.get("numero_do_contrato")), "origem": "bndes", "obra": " / ".join(x for x in [cli, tipo, objeto, (cid or uf or "BRASIL").upper()] if x)[:160], "contratos": 1,
                         "empresa": cli, "cnpj": re.sub(r"\D", "", r.get("cnpj") or "") or None, "cidade": cid, "uf": uf, "segmento": seg_bndes(r),
                         "subtipo": (r.get("subsetor_cnae_nome") or "").strip().upper() or None, "tipo": tipo, "estagio": "FINANCIAMENTO", "valor": v,
                         "detalhes": desc.capitalize(), "atualizado": d, "criado": d, "produto": r.get("produto"), "situacao": r.get("situacao_do_contrato"),
                         "fontes": [{"t": f"BNDES · contrato {r.get('numero_do_contrato')} · {r.get('produto')}", "url": "https://dadosabertos.bndes.gov.br/dataset/operacoes-financiamento", "veiculo": "BNDES (dados abertos)", "data": d}]})
+            vistos[chave] = out[-1]
         if (rs[-1].get("data_da_contratacao") or "")[:10] < lim: break
         off += 1000
     print("BNDES:", len(out)); return out
@@ -207,7 +221,7 @@ def aneel():
             if not rs: break
             for r in rs:
                 kw = num(r.get("MdaPotenciaOutorgadaKw")) or 0
-                if kw < 5000: continue
+                if kw < 5000 or (est == "PROJETO" and kw < 50000): continue
                 prop = r.get("DscPropriRegimePariticipacao") or ""
                 m = re.search(r"para (.+?) - (\d{2}\.\d{3}\.\d{3}/\d{4}-\d{2})", prop)
                 emp = m.group(1).strip() if m else (prop[:80] or None); cnpj = re.sub(r"\D", "", m.group(2)) if m else None
@@ -220,7 +234,7 @@ def aneel():
                             "tipo": "IMPLANTAÇÃO", "estagio": est, "valor": None, "potencia_mw": round(kw / 1000, 2),
                             "detalhes": f"{tg} {r.get('NomEmpreendimento')} com potência outorgada de {f'{kw / 1000:,.1f}'.replace(',', 'X').replace('.', ',').replace('X', '.')} MW ({r.get('DscOrigemCombustivel') or ''}). Fase na ANEEL: {fase}. Outorga: {r.get('DscTipoOutorga') or '—'}.",
                             "inicio": None, "termino": r.get("DatEntradaOperacao") or None, "lat": lat, "lon": lon,
-                            "atualizado": r.get("DatGeracaoConjuntoDados") or HOJE.isoformat(), "criado": r.get("DatInicioVigencia"),
+                            "atualizado": r.get("DatInicioVigencia") or r.get("DatGeracaoConjuntoDados") or HOJE.isoformat(), "criado": r.get("DatInicioVigencia"),
                             "fontes": [{"t": f"ANEEL/SIGA · CEG {r.get('CodCEG')}", "url": "https://dadosabertos.aneel.gov.br/dataset/siga-sistema-de-informacoes-de-geracao-da-aneel", "veiculo": "ANEEL (dados abertos)", "data": r.get("DatGeracaoConjuntoDados")}]})
             off += 1000
     print("ANEEL:", len(out)); return out
