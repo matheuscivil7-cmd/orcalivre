@@ -196,6 +196,7 @@ def canais(nome):
 
 def fornecedores(obras, arq, maximo=120, minutos=35):
     cache = json.load(open(arq)) if os.path.exists(arq) else {}
+    cache = {k: v for k, v in cache.items() if not RUIM.search(str(v.get("site") or "") + " " + str(v.get("fornecedores") or ""))}
     achou = lambda c: c.get("site") or c.get("fornecedores") or c.get("emails")
     lim_ok, lim_vazio = (HOJE - timedelta(days=60)).isoformat(), (HOJE - timedelta(days=10)).isoformat()
     def vencido(c):
