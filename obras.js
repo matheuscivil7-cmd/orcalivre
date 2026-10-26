@@ -11,13 +11,15 @@ const IO={
   ext:'<path d="M14 3h7v7M10 14L21 3M21 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5"/>', bell:'<path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 0 1-3.4 0"/>',
   pdf:'<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 15h6M9 11h3"/>', spark:'<path d="M12 3l1.8 4.9L19 9.7l-5.2 1.8L12 16.4l-1.8-4.9L5 9.7l5.2-1.8z"/>',
   map:'<path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/>', csv:'<path d="M12 3v12M7 10l5 5 5-5M5 21h14"/>',
-  user:'<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>', plus:'<path d="M12 5v14M5 12h14"/>', x:'<path d="M18 6L6 18M6 6l12 12"/>', cal:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>'};
+  user:'<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>', plus:'<path d="M12 5v14M5 12h14"/>', x:'<path d="M18 6L6 18M6 6l12 12"/>', cal:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>',
+  chk:'<path d="M20 6L9 17l-5-5"/>', cart:'<circle cx="9" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/><path d="M2 3h3l2.7 12.4a1 1 0 0 0 1 .8h9.6a1 1 0 0 0 1-.8L21 7H6"/>', team:'<circle cx="9" cy="8" r="3.5"/><path d="M2 20a7 7 0 0 1 14 0M16 4.5a3.5 3.5 0 0 1 0 7M22 20a7 7 0 0 0-4-6.3"/>', mail:'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/>', copy:'<rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/>'};
 const io=(k,s=15)=>SV(IO[k]).replace('<svg',`<svg style="width:${s}px;height:${s}px;vertical-align:-3px;flex:0 0 ${s}px"`);
 const N=s=>String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toUpperCase();
 const UFS='AC AL AM AP BA CE DF ES GO MA MG MS MT PA PB PE PI PR RJ RN RO RR RS SC SE SP TO'.split(' ');
 const SEGS=['INDUSTRIAL','LOGÍSTICA','COMERCIAL','CORPORATIVO','RESIDENCIAL','HOTELARIA E TURISMO','SAÚDE','EDUCAÇÃO','ENERGIA','SANEAMENTO E INFRAESTRUTURA','AGRONEGÓCIO','DATA CENTER','MINERAÇÃO','OUTROS'];
 const ESTS=['ANÚNCIO','PROJETO','LICENCIAMENTO','FINANCIAMENTO','EM OBRAS','INAUGURADA'];
-const ORIG={noticia:['Notícia','#7c5cf6'],bndes:['BNDES','#0f9d74'],aneel:['ANEEL','#4f7cff']};
+const ORIG={noticia:['Notícia','#7c5cf6'],bndes:['BNDES','#0f9d74'],aneel:['ANEEL','#4f7cff'],diario:['Diário Oficial','#c27a06']};
+const confNv=c=>c>=65?['alta','#0f9d74']:c>=35?['média','#c27a06']:['baixa','#b42318'];
 const ESTC={'ANÚNCIO':'#8b5cf6','PROJETO':'#4f7cff','LICENCIAMENTO':'#c27a06','FINANCIAMENTO':'#0f9d74','EM OBRAS':'#e0464e','INAUGURADA':'#6b7385'};
 const mi=v=>{ v=+v||0; return v>=1e9?nf2.format(v/1e9).replace(/,00$/,'')+' bi':v>=1e6?nf0.format(v/1e6)+' mi':R(v); };
 const brl=v=>v==null||!isFinite(v)||!v?'—':'R$ '+R(v);
@@ -97,7 +99,26 @@ const css=`
 .opct .c{display:grid;grid-template-columns:1.2fr 1fr 1fr 1.3fr auto;gap:6px;align-items:center}
 .opct .c input{width:100%}
 @media (max-width:1100px){.opkp{grid-template-columns:repeat(2,minmax(0,1fr))}.oppan{grid-template-columns:1fr}}
-@media (max-width:860px){.opc{grid-template-columns:1fr}.opc .acts{flex-direction:row;flex-wrap:wrap;justify-content:flex-start}.opc .val{text-align:left}.opf .kv{grid-template-columns:1fr 1fr}.opct .c{grid-template-columns:1fr 1fr}.ophb{grid-template-columns:110px minmax(0,1fr) 54px}}`;
+@media (max-width:860px){.opc{grid-template-columns:1fr}.opc .acts{flex-direction:row;flex-wrap:wrap;justify-content:flex-start}.opc .val{text-align:left}.opf .kv{grid-template-columns:1fr 1fr}.opct .c{grid-template-columns:1fr 1fr}.ophb{grid-template-columns:110px minmax(0,1fr) 54px}}
+.opc .cf{display:inline-flex;align-items:center;gap:3px;font:800 10.5px var(--f-body);padding:2px 7px;border-radius:6px;color:var(--cc);background:color-mix(in srgb,var(--cc) 12%,transparent)}
+.opconf{display:flex;gap:14px;align-items:center;border:1px solid var(--line,#e3e5ee);border-radius:12px;padding:10px 14px}
+.opconf .n{font:800 26px var(--f-body);color:var(--cc)}.opconf .n small{font-size:12px;color:var(--muted);font-weight:600}
+.opconf .bar{height:8px;border-radius:9px;background:color-mix(in srgb,var(--cc) 14%,transparent);overflow:hidden}.opconf .bar i{display:block;height:100%;background:var(--cc);border-radius:9px}
+.opconf .mot{font-size:12.5px;color:#3a4257;margin-top:6px}.opconf .mot b{color:var(--cc)}
+.oppp{display:grid;gap:6px}.oppp>div{display:flex;gap:10px;align-items:center;flex-wrap:wrap;border:1px solid var(--line,#e3e5ee);border-radius:10px;padding:7px 10px}
+.oppp span{font:700 10.5px var(--f-body);text-transform:uppercase;letter-spacing:.05em;color:var(--muted);min-width:110px}.oppp b{flex:1;min-width:140px;font-size:13px}.oppp b small{font-weight:500;color:var(--muted)}
+.opdec{display:grid;gap:10px;border:1px solid var(--line,#e3e5ee);border-radius:12px;padding:12px 14px;background:color-mix(in srgb,var(--accent,#5b5bd6) 3%,transparent)}
+.opdec .row{display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap}.opdec .lb{font:700 11px var(--f-body);text-transform:uppercase;letter-spacing:.05em;color:var(--muted);width:170px;padding-top:6px}
+.opdec .bt{display:flex;gap:6px;flex-wrap:wrap;flex:1;min-width:0}.opdec .bt .btn{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.qsa .lkin{display:inline-grid;place-items:center;width:17px;height:17px;border-radius:4px;background:#0a66c2;color:#fff!important;font:800 10px Arial;text-decoration:none;margin-left:4px;vertical-align:1px}
+.eqct{display:grid;gap:6px}.eqct>div{position:relative;border:1px solid var(--line,#e3e5ee);border-radius:10px;padding:7px 34px 7px 10px;font-size:13px}.eqct small{display:block;color:var(--muted);font-size:11.5px}.eqct .btn{position:absolute;right:4px;top:4px}
+.eqform{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin-top:8px}.eqform .w2{grid-column:1/-1}.eqform input{min-width:0;padding:7px 9px;border:1px solid var(--line,#d9dce6);border-radius:8px;font:inherit;font-size:13px}
+.eqp{display:flex;gap:12px;align-items:center;flex-wrap:wrap;border:1px solid var(--line,#e3e5ee);border-radius:14px;padding:12px 16px;margin-bottom:14px;background:var(--card,#fff)}
+.eqp .ic{width:38px;height:38px;border-radius:11px;display:grid;place-items:center;background:color-mix(in srgb,var(--accent,#5b5bd6) 12%,transparent);color:var(--accent,#5b5bd6)}
+.eqp code{font:800 13px ui-monospace,monospace;background:#f1f2f7;padding:2px 7px;border-radius:6px;letter-spacing:.08em}.eqp select{font:inherit;padding:3px 6px;border-radius:7px;border:1px solid var(--line,#d9dce6)}
+.eqa{display:flex;gap:6px;flex-wrap:wrap;align-items:center}.eqa input{padding:6px 9px;border:1px solid var(--line,#d9dce6);border-radius:8px;font:inherit;font-size:13px;width:170px}
+@media(max-width:700px){.eqform{grid-template-columns:1fr 1fr}.opdec .lb{width:100%;padding:0}}
+`;
 const st=document.createElement('style'); st.id='opcss'; st.textContent=css; document.head.appendChild(st);
 
 /* ================================================================ menu */
@@ -117,10 +138,10 @@ async function carregar(force){ if(DB.st==='ok'&&!force) return; if(DB.st==='loa
 const achar=id=>DB.obras.find(o=>o.id===id)||minhas().find(m=>m.oid===id);
 
 /* ================================================================ radar */
-S.op=S.op||{q:'',uf:'',seg:'',est:'',org:'',vmin:'',per:'180',ord:'rec',n:30};
+S.op=S.op||{q:'',uf:'',seg:'',est:'',org:'',vmin:'',conf:'',per:'180',ord:'rec',n:30};
 function filtra(F){ const terms=N(F.q).split(/\s+/).filter(w=>w.length>1); const vmin=+F.vmin||0; const per=+F.per||0;
-  let L=DB.obras.filter(o=>(!F.uf||o.uf===F.uf)&&(!F.seg||o.segmento===F.seg)&&(!F.est||o.estagio===F.est)&&(!F.org||o.origem===F.org)&&(!vmin||(o.valor||0)>=vmin)&&(!per||dias(o.atualizado)<=per)&&terms.every(w=>o._t.includes(w)));
-  const ord={rec:(a,b)=>String(b.atualizado||'').localeCompare(String(a.atualizado||'')),val:(a,b)=>(b.valor||0)-(a.valor||0),porte:(a,b)=>((b.area_m2||0)+(b.potencia_mw||0)*1e3)-((a.area_m2||0)+(a.potencia_mw||0)*1e3),novo:(a,b)=>String(b.primeira_vez||'').localeCompare(String(a.primeira_vez||''))}[F.ord]||(()=>0);
+  let L=DB.obras.filter(o=>(!F.uf||o.uf===F.uf)&&(!F.seg||o.segmento===F.seg)&&(!F.est||o.estagio===F.est)&&(!F.org||o.origem===F.org)&&(!vmin||(o.valor||0)>=vmin)&&(!+F.conf||(o.conf||0)>=+F.conf)&&(!per||dias(o.atualizado)<=per)&&terms.every(w=>o._t.includes(w)));
+  const ord={rec:(a,b)=>String(b.atualizado||'').localeCompare(String(a.atualizado||'')),val:(a,b)=>(b.valor||0)-(a.valor||0),porte:(a,b)=>((b.area_m2||0)+(b.potencia_mw||0)*1e3)-((a.area_m2||0)+(a.potencia_mw||0)*1e3),novo:(a,b)=>String(b.primeira_vez||'').localeCompare(String(a.primeira_vez||'')),conf:(a,b)=>(b.conf||0)-(a.conf||0)||(b.valor||0)-(a.valor||0)}[F.ord]||(()=>0);
   return L.sort(ord); }
 const minhas=()=>S.docs.filter(d=>d.kind==='opv');
 const seguida=id=>minhas().find(d=>d.oid===id);
@@ -128,7 +149,7 @@ const sel=(k,lab,opts,val,cls='')=>`<label class="field ${cls}"><span>${lab}</sp
 function cardOp(o){ const ec=ESTC[o.estagio]||'#8b5cf6', og=ORIG[o.origem]||['Fonte','#6b7385'], seg=seguida(o.id); const nv=dias(o.primeira_vez)<=7;
   const porte=o.area_m2?Q(o.area_m2)+' m²':o.potencia_mw?nf2.format(o.potencia_mw)+' MW':o.unidades?nf0.format(o.unidades)+' unidades':'—';
   const f0=(o.fontes||[])[0];
-  return `<article class="opc" style="--ec:${ec}"><div style="min-width:0"><div class="t1"><span class="est">${esc(o.estagio||'')}</span><span class="tag2">${esc(o.segmento||'')}</span><span class="org" style="color:${og[1]}">${og[0]}</span>${nv?'<span class="nv">NOVA</span>':''}<span>${esc([o.cidade,o.uf].filter(Boolean).join(' / ')||'Local a definir')}</span><span>· atualizada em ${fd(o.atualizado)}</span></div>
+  return `<article class="opc" style="--ec:${ec}"><div style="min-width:0"><div class="t1"><span class="est">${esc(o.estagio||'')}</span><span class="tag2">${esc(o.segmento||'')}</span><span class="org" style="color:${og[1]}">${og[0]}</span>${nv?'<span class="nv">NOVA</span>':''}${o.conf?`<span class="cf" style="--cc:${confNv(o.conf)[1]}" title="Confiabilidade ${confNv(o.conf)[0]}: ${esc((o.conf_motivos||[]).join('; '))}">${io('chk',11)}${o.conf}</span>`:''}${o.canais?`<span class="cf" style="--cc:#4f7cff" title="Canal de compras da empresa identificado">${io('cart',11)}canal de compras</span>`:''}<span>${esc([o.cidade,o.uf].filter(Boolean).join(' / ')||'Local a definir')}</span><span>· atualizada em ${fd(o.atualizado)}</span></div>
     <h4 data-act="opFicha" data-id="${esc(o.id)}">${esc(o.obra||'')}</h4><div class="dt">${esc(o.detalhes||'')}</div>
     <div class="mt"><span>Empresa: <b>${esc(o.empresa||'—')}</b></span><span>Porte: <b>${porte}</b></span>${o.empregos?`<span>Empregos: <b>${nf0.format(o.empregos)}</b></span>`:''}${o.inicio?`<span>Início: <b>${esc(o.inicio)}</b></span>`:''}${o.subtipo?`<span>${esc(o.subtipo)}</span>`:''}</div></div>
    <div class="acts"><div class="val">${o.valor?brlc(o.valor):'<span style="font-size:12px;color:#8a91a6;font-weight:600">valor não divulgado</span>'}</div>
@@ -141,13 +162,13 @@ VIEWS.opRadar=()=>{ if(DB.st!=='ok'&&DB.st!=='load'&&DB.st!=='err') carregar();
   const cS={}, cU={}; for(const o of L){ cS[o.segmento||'OUTROS']=(cS[o.segmento||'OUTROS']||0)+1; if(o.uf) cU[o.uf]=(cU[o.uf]||0)+1; }
   const salvas=lg('orcalivre.op.buscas',[]);
   const ger=DB.meta?.gerado?new Date(DB.meta.gerado).toLocaleString('pt-BR',{dateStyle:'short',timeStyle:'short'}):'';
-  return head('Radar de obras privadas',`Obras privadas de grande porte no Brasil, reunidas todo dia de notícias de investimento, financiamentos do BNDES e usinas em implantação na ANEEL${ger?' · atualizado em '+ger:''}`,
+  return head('Radar de obras privadas',`Obras privadas de grande porte no Brasil, reunidas todo dia de notícias de investimento, Diários Oficiais municipais, financiamentos do BNDES e usinas em implantação na ANEEL${ger?' · atualizado em '+ger:''}`,
     `<button class="btn" data-act="opSalvar">${io('bell')} Salvar esta busca</button><button class="btn" data-act="opCsv">${io('csv')} Exportar planilha</button>`)+
    `<div class="lcbar"><label class="field grow"><span>Buscar</span><input id="opQ" value="${esc(F.q)}" placeholder="Empresa, cidade, tipo de obra… (ex.: centro de distribuição, hospital, Toyota)" autocomplete="off"></label>
      ${sel('uf','Estado',[['','Todos'],...UFS.map(u=>[u,u])],F.uf)}${sel('seg','Segmento',[['','Todos'],...SEGS.map(s=>[s,s])],F.seg)}${sel('est','Estágio',[['','Todos'],...ESTS.map(s=>[s,s])],F.est)}
      ${sel('vmin','Investimento mínimo',[['','Qualquer'],['10000000','R$ 10 mi'],['50000000','R$ 50 mi'],['100000000','R$ 100 mi'],['500000000','R$ 500 mi'],['1000000000','R$ 1 bi']],F.vmin)}
-     ${sel('org','Fonte',[['','Todas'],['noticia','Notícias (IA)'],['bndes','BNDES'],['aneel','ANEEL']],F.org)}${sel('per','Atualizadas há',[['30','30 dias'],['90','90 dias'],['180','6 meses'],['730','2 anos'],['0','Qualquer data']],F.per)}
-     ${sel('ord','Ordenar por',[['rec','Mais recentes'],['val','Maior investimento'],['porte','Maior porte'],['novo','Entrada no radar']],F.ord)}</div>
+     ${sel('org','Fonte',[['','Todas'],['noticia','Notícias (IA)'],['bndes','BNDES'],['aneel','ANEEL'],['diario','Diários Oficiais']],F.org)}${sel('conf','Confiabilidade',[['','Qualquer'],['35','Média ou alta'],['65','Somente alta']],F.conf)}${sel('per','Atualizadas há',[['30','30 dias'],['90','90 dias'],['180','6 meses'],['730','2 anos'],['0','Qualquer data']],F.per)}
+     ${sel('ord','Ordenar por',[['rec','Mais recentes'],['val','Maior investimento'],['porte','Maior porte'],['novo','Entrada no radar'],['conf','Maior confiabilidade']],F.ord)}</div>
    ${salvas.length?`<div class="opsv">${salvas.map((b,i)=>{ const n=DB.st==='ok'?filtra({...b.f,per:'0',ord:'rec'}).filter(o=>(o.primeira_vez||'')>(b.visto||'')).length:0; return `<span><button class="go" data-act="opUsar" data-i="${i}">${esc(b.nome)}</button>${n?`<span class="q" title="Novas desde a última visita">${n}</span>`:''}<button class="x" data-act="opApagar" data-i="${i}" aria-label="Remover busca">${io('x',12)}</button></span>`; }).join('')}</div>`:''}
    ${DB.st==='load'?'<div class="empty"><b>Carregando o radar…</b>Reunindo as obras privadas mapeadas.</div>':DB.st==='err'?`<div class="empty"><b>Radar indisponível no momento</b>${esc(DB.err)}<div style="margin-top:12px"><button class="btn" data-act="opRecarregar">Tentar de novo</button></div></div>`:
    `<div class="opkp" style="margin-top:14px"><div><div class="l">Investimento mapeado</div><div class="v">${brlc(soma)}</div><div class="s">soma dos valores divulgados</div></div>
@@ -157,7 +178,7 @@ VIEWS.opRadar=()=>{ if(DB.st!=='ok'&&DB.st!=='load'&&DB.st!=='err') carregar();
     <div class="oppan"><div><h3>Por segmento</h3>${barras(cS,'seg')}</div><div><h3>Por estado</h3>${barras(cU,'uf')}</div></div>
     <div class="lclist">${vis.map(cardOp).join('')||'<div class="empty"><b>Nenhuma obra encontrada</b>Afrouxe os filtros ou busque por outro termo.</div>'}</div>
     ${L.length>vis.length?`<div style="text-align:center;margin-top:14px"><button class="btn" data-act="opMais">Mostrar mais (${nf0.format(L.length-vis.length)} restantes)</button></div>`:''}
-    <p class="opnote">Notícias: manchetes de veículos de imprensa lidas por inteligência artificial, que identifica empresa, local, segmento, estágio e valor; confira sempre a matéria original. BNDES: financiamentos contratados por empresas privadas a partir de R$ 10 milhões para implantação, ampliação ou modernização. ANEEL: usinas de 5 MW ou mais com construção iniciada ou prevista. Dados da empresa vêm do cadastro público de CNPJ da Receita Federal.</p>`}`; };
+    <p class="opnote">Notícias: manchetes de veículos de imprensa lidas por inteligência artificial, que identifica empresa, local, segmento, estágio e valor; confira sempre a matéria original. BNDES: financiamentos contratados por empresas privadas a partir de R$ 10 milhões para implantação, ampliação ou modernização. ANEEL: usinas de 5 MW ou mais com construção iniciada ou prevista. Diários Oficiais: alvarás de construção, licenças de instalação e aprovações de projeto de grande porte publicados pelos municípios (Querido Diário). A confiabilidade (0 a 100) soma as evidências: tipo de fonte, número de veículos, confirmação em outra fonte, CNPJ, cidade e valor. Dados da empresa vêm do cadastro público de CNPJ da Receita Federal.</p>`}`; };
 
 let qT=0;
 document.addEventListener('input',e=>{ if(e.target.id==='opQ'){ S.op.q=e.target.value; S.op.n=30; clearTimeout(qT); qT=setTimeout(()=>{ const p=e.target.selectionStart; render(); const i=$('#opQ'); if(i){ i.focus(); try{ i.setSelectionRange(p,p); }catch(_){} } },260); } });
@@ -184,7 +205,7 @@ function empHTML(o){ const cn=String(o.cnpj||o.cnpjUser||'').replace(/\D/g,'');
     <div><b>Atividade principal:</b> ${esc(d.cnae_fiscal_descricao||'')} · <b>Porte:</b> ${esc(d.porte||d.descricao_porte||'')} · <b>Situação:</b> ${esc(d.descricao_situacao_cadastral||'')}</div>
     ${tel.length||d.email?`<div><b>Contato cadastrado na Receita:</b> ${esc(tel.join(' · '))}${d.email?' · '+esc(String(d.email).toLowerCase()):''}</div>`:''}
     ${d.capital_social?`<div><b>Capital social:</b> ${brl(+d.capital_social)}</div>`:''}
-    ${socios.length?`<div style="margin-top:6px"><b>Quadro de sócios e administradores:</b><div class="qsa">${socios.map(s=>`<span>${esc(s.nome_socio||s.nome||'')}${s.qualificacao_socio?' · '+esc(s.qualificacao_socio):''}</span>`).join('')}</div></div>`:''}
+    ${socios.length?`<div style="margin-top:6px"><b>Quadro de sócios e administradores:</b><div class="qsa">${socios.map(s=>{ const nm=s.nome_socio||s.nome||''; const pj=/\d{8}/.test(String(s.cnpj_cpf_do_socio||''))&&String(s.cnpj_cpf_do_socio||'').replace(/\D/g,'').length===14; return `<span>${esc(nm)}${s.qualificacao_socio?' · '+esc(s.qualificacao_socio):''}${pj?'':` <a href="${lkP(nm+' '+curta(d.nome_fantasia||d.razao_social))}" target="_blank" rel="noopener" title="Procurar ${esc(nm)} no LinkedIn" class="lkin">in</a>`}</span>`; }).join('')}</div><div class="note" style="margin-top:4px">O botão <b>in</b> abre a busca de pessoas do LinkedIn com o nome e a empresa; confira se o perfil é da pessoa certa.</div></div>`:''}
     <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap"><a class="btn sm" target="_blank" rel="noopener" href="https://www.google.com/search?q=${encodeURIComponent((d.nome_fantasia||d.razao_social||'')+' site oficial')}">${io('ext',13)}Site da empresa</a><a class="btn sm" target="_blank" rel="noopener" href="https://www.linkedin.com/search/results/companies/?keywords=${encodeURIComponent(d.nome_fantasia||d.razao_social||'')}">${io('user',13)}Empresa no LinkedIn</a></div></div>`; }
 
 /* ================================================================ ficha (relatório) */
@@ -197,7 +218,10 @@ function fichaCorpo(o){ const og=ORIG[o.origem]||['Fonte'];
     ${kv('Valor do investimento',o.valor?brl(o.valor):'Não divulgado')}${kv('Área construída',o.area_m2?Q(o.area_m2)+' m²':'—')}${kv(o.potencia_mw?'Potência':'Unidades',o.potencia_mw?nf2.format(o.potencia_mw)+' MW':o.unidades?nf0.format(o.unidades):'—')}
     ${o.empregos?kv('Empregos previstos',nf0.format(o.empregos)):''}${o.produto?kv('Linha BNDES',esc(o.produto)):''}${o.situacao?kv('Situação do contrato',esc(o.situacao)):''}</div>
    <h5>Detalhes</h5><p class="det">${esc(o.detalhes||'—')}</p>
+   ${o.conf?`<h5>Confiabilidade da informação</h5><div class="opconf" style="--cc:${confNv(o.conf)[1]}"><div class="n">${o.conf}<small>/100</small></div><div style="flex:1;min-width:0"><div class="bar"><i style="width:${o.conf}%"></i></div><div class="mot"><b>${confNv(o.conf)[0].toUpperCase()}</b> · ${esc((o.conf_motivos||[]).join(' · '))}</div></div></div>`:''}
+   ${o.construtora||o.projetista||(o.pessoas||[]).length?`<h5>Envolvidos citados nas fontes</h5><div class="oppp">${o.construtora?`<div><span>Construtora</span><b>${esc(o.construtora)}</b><a class="btn sm" target="_blank" rel="noopener" href="${lkC(o.construtora)}">${io('user',13)}LinkedIn</a></div>`:''}${o.projetista?`<div><span>Projeto</span><b>${esc(o.projetista)}</b><a class="btn sm" target="_blank" rel="noopener" href="${lkC(o.projetista)}">${io('user',13)}LinkedIn</a></div>`:''}${(o.pessoas||[]).map(p=>`<div><span>${esc(p.cargo||'Citado')}</span><b>${esc(p.nome)}${p.empresa?` <small>· ${esc(p.empresa)}</small>`:''}</b><a class="btn sm" target="_blank" rel="noopener" href="${lkP(p.nome+' '+curta(p.empresa||o.empresa))}">${io('user',13)}Procurar no LinkedIn</a></div>`).join('')}</div><p class="note" style="margin:4px 0 0">Pessoas citadas publicamente na matéria como porta-vozes da obra. O radar não guarda telefones nem e-mails pessoais.</p>`:''}
    <h5>Empresa participante</h5>${empHTML(o)}
+   ${decisor(o)}
    <h5>Fontes</h5><div class="src">${(o.fontes||[]).map(f=>`<a href="${esc(f.url||'#')}" target="_blank" rel="noopener">${io('ext',15)}<span>${esc(f.t||'')}<small>${esc(f.veiculo||'')} · ${fd(f.data)}</small></span></a>`).join('')||'<span class="note">Sem link de origem.</span>'}</div></div>`; }
 ACT.opFicha=d=>{ const o=achar(d.id); if(!o) return; S.opf=d.id; const cn=String(o.cnpj||o.cnpjUser||'').replace(/\D/g,''); if(cn.length===14) empresa(cn);
   modal(()=>{ const x=achar(S.opf)||o; const sg=seguida(x.oid||x.id);
@@ -225,6 +249,9 @@ ACT.opRelatorio=()=>{ const o=achar(S.opf); if(!o) return; const cn=String(o.cnp
    ${linha('Tipo',esc(o.tipo||'—'))}${linha('Início / Término',esc(o.inicio||'A definir')+' / '+esc(o.termino||'A definir'))}${linha('Estágio',esc(o.estagio))}${linha('Área total construída (m²)',o.area_m2?Q(o.area_m2):'')}
    ${o.potencia_mw?linha('Potência',nf2.format(o.potencia_mw)+' MW'):''}${o.unidades?linha('Total de unidades',nf0.format(o.unidades)):''}${o.empregos?linha('Empregos previstos',nf0.format(o.empregos)):''}${linha('Valor do investimento',o.valor?brl(o.valor):'Não divulgado')}
    <h3>Detalhes</h3><div>${esc(o.detalhes||'—')}</div>
+   ${o.conf?`<h3>Confiabilidade</h3><div><b>${o.conf}/100</b> (${confNv(o.conf)[0]}) — ${esc((o.conf_motivos||[]).join('; '))}</div>`:''}
+   ${o.construtora||o.projetista||(o.pessoas||[]).length?`<h3>Envolvidos citados</h3>${o.construtora?linha('Construtora',esc(o.construtora)):''}${o.projetista?linha('Projeto',esc(o.projetista)):''}${(o.pessoas||[]).map(p=>linha(esc(p.cargo||'Citado'),esc(p.nome)+(p.empresa?' ('+esc(p.empresa)+')':''))).join('')}`:''}
+   ${o.canais?`<h3>Canais de compra da empresa</h3>${o.canais.fornecedores?linha('Portal de fornecedores',`<a href="${esc(o.canais.fornecedores)}">${esc(o.canais.fornecedores)}</a>`):''}${o.canais.site?linha('Site',esc(o.canais.site)):''}${(o.canais.emails||[]).length?linha('E-mails corporativos',esc(o.canais.emails.join(' · '))):''}`:''}
    <h3>Empresa participante</h3><div class="box">${emp}</div>
    <h3>Fontes</h3>${(o.fontes||[]).map(f=>`<div>• ${esc(f.t||'')} (${esc(f.veiculo||'')}, ${fd(f.data)})<br><a href="${esc(f.url||'')}">${esc(f.url||'')}</a></div>`).join('')}
    <div class="f">Relatório gerado pelo OrçaLivre a partir de fontes públicas (imprensa, BNDES, ANEEL e cadastro de CNPJ da Receita Federal). Confirme as informações com a empresa antes de qualquer proposta.</div>
@@ -236,6 +263,72 @@ ACT.opOrc=async()=>{ const o=achar(S.opf); if(!o) return;
   const b=newBudget({nome:('Obra privada · '+(o.obra||'')).slice(0,90),cliente:o.empresa||'',local:[o.cidade,o.uf].filter(Boolean).join('/'),dataBase:new Date().toISOString().slice(0,7)});
   if(o.area_m2) b.area=o.area_m2; await Store.save(b); const m=seguida(o.oid||o.id); if(m){ m.orc=b.id; await Store.save(m); }
   closeModal(); S.cur=b; S.sel=null; lsSet('orcalivre.last',b.id); go('plan'); toast('Orçamento criado para a obra. Monte as etapas e use o assistente para escolher as composições.'); };
+
+
+/* ================================================================ como chegar ao decisor (somente canais públicos e buscas manuais) */
+const STOPW=new Set('S A SA LTDA EIRELI ME EPP HOLDING PARTICIPACOES PARTICIPACAO DO DA DE DOS DAS E BRASIL BRAZIL INDUSTRIA INDUSTRIAL COMERCIO COMERCIAL GRUPO CIA COMPANHIA EMPREENDIMENTOS EMPREENDIMENTO SPE'.split(' '));
+const chaveEmp=n=>N(n).replace(/[^A-Z0-9 ]+/g,' ').split(/\s+/).filter(w=>w.length>1&&!STOPW.has(w)).slice(0,2).join(' ');
+const curta=n=>{ const t=String(n||'').replace(/\b(S\.?\/?A\.?|LTDA\.?|EIRELI|ME|EPP)\b/gi,'').replace(/\s+/g,' ').trim(); return t.split(' ').slice(0,3).join(' '); };
+const lkP=q=>'https://www.linkedin.com/search/results/people/?keywords='+encodeURIComponent(q.trim());
+const lkC=q=>'https://www.linkedin.com/search/results/companies/?keywords='+encodeURIComponent(curta(q));
+const gS=q=>'https://www.google.com/search?q='+encodeURIComponent(q);
+function decisor(o){ const emp=curta(o.empresa||''); const c=o.canais||{};
+  const ch=[c.fornecedores?`<a class="btn sm primary" href="${esc(c.fornecedores)}" target="_blank" rel="noopener">${io('cart',13)}Portal de fornecedores</a>`:'',
+    c.site?`<a class="btn sm" href="${esc(c.site)}" target="_blank" rel="noopener">${io('ext',13)}${esc(c.site.replace(/^https?:\/\//,''))}</a>`:'',
+    ...(c.emails||[]).map(e=>`<a class="btn sm" href="mailto:${esc(e)}">${io('mail',13)}${esc(e)}</a>`)].filter(Boolean).join('');
+  const cargos=[['Suprimentos','suprimentos'],['Compras','compras'],['Engenharia','engenharia'],['Diretor de obras','diretor de obras'],['Expansão / novos projetos','expansão'],['Facilities','facilities']];
+  return `<h5>Como chegar ao decisor</h5><div class="opdec">
+   <div class="row"><span class="lb">Canais de compra da empresa</span><div class="bt">${ch||`<span class="note">Nenhum canal público encontrado automaticamente.</span>`}${emp?`<a class="btn sm" target="_blank" rel="noopener" href="${gS('"'+emp+'" portal de fornecedores OR "seja um fornecedor" OR "cadastro de fornecedores"')}">${io('ext',13)}Procurar portal de fornecedores</a>`:''}</div></div>
+   ${emp?`<div class="row"><span class="lb">Pessoas por área no LinkedIn</span><div class="bt">${cargos.map(([l,q])=>`<a class="btn sm" target="_blank" rel="noopener" href="${lkP(q+' '+emp)}">${io('user',13)}${l}</a>`).join('')}<a class="btn sm" target="_blank" rel="noopener" href="${lkC(o.empresa)}">${io('pred',13)}Página da empresa</a></div></div>`:''}
+   ${o.construtora?`<div class="row"><span class="lb">Construtora contratada</span><div class="bt"><a class="btn sm" target="_blank" rel="noopener" href="${lkP('suprimentos '+curta(o.construtora))}">${io('user',13)}Suprimentos da ${esc(curta(o.construtora))}</a><a class="btn sm" target="_blank" rel="noopener" href="${lkP('engenheiro '+curta(o.construtora)+' '+(o.cidade||''))}">${io('user',13)}Engenharia da obra</a></div></div>`:''}
+   ${eqBloco(o)}
+   <p class="note" style="margin:6px 0 0">Os botões abrem buscas no LinkedIn e no Google para você conferir manualmente; o radar não copia perfis nem guarda dados pessoais (LGPD e termos de uso do LinkedIn). E-mails exibidos são canais corporativos publicados no site da própria empresa.</p></div>`; }
+
+/* ================================================================ equipe: contatos compartilhados */
+const EQ={st:'',lista:[],sel:lg('orcalivre.eq.sel',''),ct:{},membros:{},abrir:false};
+const eqLogado=()=>!!(Store.sb&&Store.user);
+async function eqCarregar(force){ if(!eqLogado()){ EQ.st='off'; return; } if(EQ.st==='ok'&&!force||EQ.st==='load') return; EQ.st='load';
+  try{ const {data,error}=await Store.sb.from('equipes').select('id,nome,codigo,criado_por').order('criado'); if(error) throw error; EQ.lista=data||[];
+    if(!EQ.lista.find(e=>e.id===EQ.sel)){ EQ.sel=EQ.lista[0]?.id||''; ls('orcalivre.eq.sel',EQ.sel); } EQ.st='ok'; EQ.ct={};
+    if(EQ.sel){ const r=await Store.sb.from('equipe_membros').select('email,entrou').eq('equipe',EQ.sel); EQ.membros[EQ.sel]=r.data||[]; }
+  }catch(e){ EQ.st='err'; EQ.err=e.message||String(e); }
+  rr(); }
+const rr=()=>{ if(!$('#modal').hidden) remodal(); else render(); };
+const eqChave=o=>chaveEmp(o.empresa)||String(o.cnpj||o.cnpjUser||'').replace(/\D/g,'').slice(0,8);
+async function eqContatos(k){ if(!EQ.sel||!k) return; EQ.ct[k]={st:'load',L:[]};
+  const {data,error}=await Store.sb.from('contatos_equipe').select('*').eq('equipe',EQ.sel).eq('empresa_chave',k).order('atualizado',{ascending:false});
+  EQ.ct[k]=error?{st:'err',L:[]}:{st:'ok',L:data||[]}; rr(); }
+function eqBloco(o){ const k=eqChave(o);
+  if(!eqLogado()) return `<div class="row"><span class="lb">Contatos da equipe</span><div class="note">Entre na sua conta para ver e registrar contatos compartilhados com a sua equipe.</div></div>`;
+  if(EQ.st===''||EQ.st==='off'){ eqCarregar(); } if(EQ.st!=='ok') return `<div class="row"><span class="lb">Contatos da equipe</span><div class="note">${EQ.st==='err'?'Não foi possível carregar as equipes.':'Carregando…'}</div></div>`;
+  if(!EQ.sel) return `<div class="row"><span class="lb">Contatos da equipe</span><div class="note">Crie uma equipe ou entre com o código de um colega em <a href="#" data-act="go" data-v="opMinhas">Minhas oportunidades</a> para compartilhar contatos.</div></div>`;
+  if(!k) return '';
+  const C=EQ.ct[k]; if(!C){ eqContatos(k); } const L=C?.L||[]; const eq=EQ.lista.find(e=>e.id===EQ.sel);
+  const meu=Store.user?.id;
+  return `<div class="row"><span class="lb">Contatos da equipe ${esc(eq?.nome||'')}</span><div style="flex:1;min-width:0">
+    ${C?.st==='load'?'<div class="note">Carregando…</div>':L.length?`<div class="eqct">${L.map(c=>`<div><b>${esc(c.nome)}</b>${c.cargo?` · ${esc(c.cargo)}`:''}${c.tel?` · <a href="tel:${esc(c.tel)}">${esc(c.tel)}</a>`:''}${c.email?` · <a href="mailto:${esc(c.email)}">${esc(c.email)}</a>`:''}${c.obs?`<small>${esc(c.obs)}</small>`:''}<small>por ${esc(c.criado_email||'colega')} em ${fd(c.atualizado)}</small>${c.criado_por===meu?`<button class="btn sm ghost" data-act="eqDel" data-id="${c.id}" data-k="${esc(k)}" aria-label="Excluir contato">${io('x',12)}</button>`:''}</div>`).join('')}</div>`:'<div class="note">Ninguém da equipe registrou contato nesta empresa ainda.</div>'}
+    ${EQ.abrir===k?`<div class="eqform"><input id="eqN" placeholder="Nome"><input id="eqC" placeholder="Cargo / área"><input id="eqT" placeholder="Telefone"><input id="eqE" placeholder="E-mail"><input id="eqO" placeholder="Observação (como conseguiu, melhor horário…)" class="w2"><div class="w2" style="display:flex;gap:8px"><button class="btn sm primary" data-act="eqAdd" data-k="${esc(k)}" data-emp="${esc(o.empresa||'')}">Salvar para a equipe</button><button class="btn sm" data-act="eqForm" data-k="">Cancelar</button></div><p class="note w2" style="margin:0">Registre apenas contatos obtidos de forma legítima (cartão, conversa, canal da empresa). Ficam visíveis só para os membros da equipe.</p></div>`
+      :`<button class="btn sm" data-act="eqForm" data-k="${esc(k)}" style="margin-top:6px">${io('plus',13)} Registrar contato para a equipe</button>`}</div></div>`; }
+ACT.eqForm=d=>{ EQ.abrir=d.k||false; rr(); };
+ACT.eqAdd=async d=>{ const v=id=>($('#'+id)?.value||'').trim(); const nome=v('eqN'); if(!nome){ toast('Informe o nome do contato.'); return; }
+  const row={equipe:EQ.sel,empresa_chave:d.k,empresa:d.emp||null,nome,cargo:v('eqC')||null,tel:v('eqT')||null,email:v('eqE')||null,obs:v('eqO')||null,criado_por:Store.user.id,criado_email:Store.user.email||null};
+  const {error}=await Store.sb.from('contatos_equipe').insert(row); if(error){ toast('Não foi possível salvar: '+error.message); return; }
+  EQ.abrir=false; toast('Contato compartilhado com a equipe.'); eqContatos(d.k); };
+ACT.eqDel=async d=>{ const {error}=await Store.sb.from('contatos_equipe').delete().eq('id',d.id); if(error){ toast(error.message); return; } eqContatos(d.k); };
+ACT.eqCriar=async()=>{ const n=($('#eqNome')?.value||'').trim(); if(n.length<2){ toast('Dê um nome para a equipe.'); return; }
+  const {data,error}=await Store.sb.rpc('criar_equipe',{p_nome:n}); if(error){ toast(error.message); return; } EQ.sel=data.id; ls('orcalivre.eq.sel',EQ.sel); toast('Equipe criada. Envie o código '+data.codigo+' para os colegas.'); eqCarregar(true); };
+ACT.eqEntrar=async()=>{ const c=($('#eqCod')?.value||'').trim(); if(c.length<6){ toast('Informe o código da equipe.'); return; }
+  const {data,error}=await Store.sb.rpc('entrar_equipe',{p_codigo:c}); if(error){ toast(error.message.includes('não encontrado')?'Código não encontrado.':error.message); return; } EQ.sel=data.id; ls('orcalivre.eq.sel',EQ.sel); toast('Você entrou na equipe '+data.nome+'.'); eqCarregar(true); };
+ACT.eqSair=async()=>{ if(!EQ.sel||!confirmar('Sair desta equipe? Você deixa de ver os contatos compartilhados.')) return; await Store.sb.from('equipe_membros').delete().eq('equipe',EQ.sel).eq('user_id',Store.user.id); EQ.sel=''; ls('orcalivre.eq.sel',''); eqCarregar(true); };
+const confirmar=t=>window.confirm(t);
+ACT.eqCopiar=d=>{ try{ navigator.clipboard.writeText(d.c); toast('Código copiado.'); }catch(e){ toast('Código: '+d.c); } };
+document.addEventListener('change',e=>{ if(e.target.id==='eqSel'){ EQ.sel=e.target.value; ls('orcalivre.eq.sel',EQ.sel); eqCarregar(true); } });
+function eqPainel(){ if(!eqLogado()) return `<div class="eqp"><span class="ic">${io('team',18)}</span><div><b>Contatos compartilhados com a equipe</b><div class="note">Entre na sua conta para criar uma equipe e compartilhar contatos de obras com os colegas.</div></div></div>`;
+  if(EQ.st===''||EQ.st==='off') eqCarregar(); if(EQ.st!=='ok') return `<div class="eqp"><span class="ic">${io('team',18)}</span><div class="note">${EQ.st==='err'?'Equipes indisponíveis: '+esc(EQ.err||''):'Carregando equipes…'}</div></div>`;
+  const e=EQ.lista.find(x=>x.id===EQ.sel); const M=EQ.membros[EQ.sel]||[];
+  return `<div class="eqp"><span class="ic">${io('team',18)}</span><div style="flex:1;min-width:0">${e?`<b>Equipe</b> ${EQ.lista.length>1?`<select id="eqSel" aria-label="Equipe">${EQ.lista.map(x=>`<option value="${x.id}" ${x.id===EQ.sel?'selected':''}>${esc(x.nome)}</option>`).join('')}</select>`:`<b>${esc(e.nome)}</b>`} · código <code>${esc(e.codigo)}</code> <button class="btn sm ghost" data-act="eqCopiar" data-c="${esc(e.codigo)}" aria-label="Copiar código">${io('copy',13)}</button>
+     <div class="note">${M.length} membro${M.length===1?'':'s'}${M.length?': '+M.map(m=>esc(m.email||'')).join(', '):''}. Os contatos registrados nas fichas das obras ficam visíveis para todos da equipe.</div>`:`<b>Contatos compartilhados com a equipe</b><div class="note">Crie uma equipe e envie o código aos colegas, ou entre com o código que recebeu.</div>`}</div>
+    <div class="eqa"><input id="eqNome" placeholder="Nome da nova equipe"><button class="btn sm" data-act="eqCriar">Criar equipe</button><input id="eqCod" placeholder="Código" style="width:110px;text-transform:uppercase"><button class="btn sm" data-act="eqEntrar">Entrar</button>${e?`<button class="btn sm ghost" data-act="eqSair">Sair</button>`:''}</div></div>`; }
 
 /* ================================================================ acompanhar / minhas oportunidades */
 const ETAPAS=[['prospeccao','Prospecção'],['contato','Contato feito'],['reuniao','Visita / reunião'],['proposta','Proposta enviada'],['negociacao','Negociação'],['ganha','Ganha'],['perdida','Perdida']];
@@ -251,7 +344,7 @@ VIEWS.opMinhas=()=>{ if(DB.st===''){ carregar(); }
   for(const k in by) by[k].sort((a,b)=>String(a.follow||'9').localeCompare(String(b.follow||'9')));
   const at=L.filter(d=>!['ganha','perdida'].includes(d.etapa)); const pipe=at.reduce((s,d)=>s+(+d.proposta||+d.valor||0),0);
   const late=at.filter(d=>d.follow&&d.follow<=hoje()).length; const dec2=L.filter(d=>['ganha','perdida'].includes(d.etapa)); const taxa=dec2.length?L.filter(d=>d.etapa==='ganha').length/dec2.length*100:null;
-  return head('Minhas oportunidades','Acompanhe cada obra privada da prospecção ao contrato, com contatos, follow-ups e orçamento vinculado',`<button class="btn" data-act="go" data-v="opRadar">Abrir o radar</button>`)+
+  return head('Minhas oportunidades','Acompanhe cada obra privada da prospecção ao contrato, com contatos, follow-ups e orçamento vinculado',`<button class="btn" data-act="go" data-v="opRadar">Abrir o radar</button>`)+eqPainel()+
    `<div class="opkp"><div><div class="l">Pipeline em aberto</div><div class="v">${brlc(pipe)}</div><div class="s">propostas ou investimento das obras ativas</div></div><div><div class="l">Oportunidades ativas</div><div class="v">${at.length}</div></div><div><div class="l">Follow-ups para hoje ou atrasados</div><div class="v" style="${late?'color:#b42318':''}">${late}</div></div><div><div class="l">Taxa de conversão</div><div class="v">${taxa==null?'—':nf2.format(taxa)+'%'}</div><div class="s">ganhas ÷ decididas</div></div></div>
    ${L.length?`<div class="opk">${ETAPAS.map(([k,l])=>`<div class="kcol"><h3>${l}<span>${by[k].length}</span></h3>${by[k].map(d=>`<div class="kcard" data-act="opCard" data-id="${d.id}"><span class="tag2">${esc(d.segmento||'')}</span><div class="o">${esc(d.obra||'')}</div><div class="m">${esc(d.empresa||'')}${d.cidade||d.uf?'<br>'+esc([d.cidade,d.uf].filter(Boolean).join(' / ')):''}</div>${d.proposta||d.valor?`<div class="v">${brlc(d.proposta||d.valor)}${d.proposta?' <small style="color:#8a91a6;font-weight:600">proposta</small>':''}</div>`:''}${fuTag(d.follow)}</div>`).join('')}</div>`).join('')}</div>`
    :`<div class="empty"><b>Nenhuma oportunidade ainda</b>No Radar de obras privadas, clique em "Acompanhar" nas obras que interessam à sua empresa.<div style="margin-top:12px"><button class="btn primary" data-act="go" data-v="opRadar">Abrir o radar</button></div></div>`}`; };
@@ -266,7 +359,8 @@ function cardHTML(){ const m=minhas().find(x=>x.id===S.opc); if(!m) return dlg('
      <label class="field"><span>Valor da nossa proposta (R$)</span><input data-opm="proposta" value="${m.proposta?R(m.proposta):''}" inputmode="decimal"></label>
      <label class="field" style="grid-column:span 2"><span>Orçamento vinculado</span><select data-opm="orc"><option value="">Nenhum</option>${orcs.map(o=>`<option value="${o.id}" ${m.orc===o.id?'selected':''}>${esc(o.nome)}</option>`).join('')}</select></label></div>
     <div><div class="eyebrow" style="margin-bottom:6px">Contatos da obra</div><div class="opct">${C.map((c,i)=>`<div class="c"><input data-opc="${i}" data-k="nome" value="${esc(c.nome||'')}" placeholder="Nome"><input data-opc="${i}" data-k="cargo" value="${esc(c.cargo||'')}" placeholder="Cargo"><input data-opc="${i}" data-k="tel" value="${esc(c.tel||'')}" placeholder="Telefone"><input data-opc="${i}" data-k="email" value="${esc(c.email||'')}" placeholder="E-mail"><button class="btn sm ghost" data-act="opCtDel" data-i="${i}" aria-label="Remover contato">${io('x',13)}</button></div>`).join('')}
-     <div><button class="btn sm" data-act="opCtAdd">${io('plus',13)} Adicionar contato</button></div></div><p class="note" style="margin:6px 0 0">Registre aqui os contatos que sua equipe obtiver (engenharia, suprimentos, comprador).</p></div>
+     <div><button class="btn sm" data-act="opCtAdd">${io('plus',13)} Adicionar contato</button></div></div><p class="note" style="margin:6px 0 0">Contatos particulares desta oportunidade (só você vê). Para compartilhar com a equipe, use o bloco abaixo.</p></div>
+    <div class="opf" style="padding:0">${decisor(m)}</div>
     <label class="field"><span>Histórico e anotações</span><textarea data-opm="notas" rows="4" style="width:100%" placeholder="Ex.: 26/10 liguei para suprimentos, pediram apresentação da empresa…">${esc(m.notas||'')}</textarea></label></div>`,
    `<button class="btn danger" data-act="opSeguir" data-id="${esc(m.oid)}">Parar de acompanhar</button>${m.orc?`<button class="btn" data-act="opAbrirOrc" data-id="${m.orc}">Abrir orçamento</button>`:''}<button class="btn" data-act="opFicha" data-id="${esc(m.oid)}">Ver ficha</button><button class="btn primary" data-act="close">Concluir</button>`); }
 ACT.opAbrirOrc=d=>{ closeModal(); ACT.open({id:d.id}); };
@@ -285,9 +379,9 @@ ACT.opSalvar=()=>{ const F=S.op; const nome=[F.q,F.seg,F.uf,F.est,F.vmin?'≥ '+
   L.push({nome,f:{q:F.q,uf:F.uf,seg:F.seg,est:F.est,org:F.org,vmin:F.vmin},visto:new Date().toISOString().slice(0,10)}); ls('orcalivre.op.buscas',L); toast('Busca salva. O número ao lado mostra as obras novas desde a sua última visita.'); render(); };
 ACT.opUsar=d=>{ const L=lg('orcalivre.op.buscas',[]); const b=L[+d.i]; if(!b) return; Object.assign(S.op,{q:'',uf:'',seg:'',est:'',org:'',vmin:'',...b.f,per:'0',ord:'novo',n:30}); b.visto=new Date().toISOString().slice(0,10); ls('orcalivre.op.buscas',L); render(); };
 ACT.opApagar=d=>{ const L=lg('orcalivre.op.buscas',[]); L.splice(+d.i,1); ls('orcalivre.op.buscas',L); render(); };
-ACT.opCsv=()=>{ if(DB.st!=='ok') return; const L=filtra(S.op); const cols=[['codigo','Código'],['obra','Obra'],['empresa','Empresa'],['cnpj','CNPJ'],['cidade','Cidade'],['uf','UF'],['segmento','Segmento'],['subtipo','Subtipo'],['tipo','Tipo'],['estagio','Estágio'],['valor','Investimento (R$)'],['area_m2','Área (m²)'],['potencia_mw','Potência (MW)'],['empregos','Empregos'],['inicio','Início'],['termino','Término'],['atualizado','Atualizado'],['origem','Fonte'],['detalhes','Detalhes'],['link','Link da fonte']];
+ACT.opCsv=()=>{ if(DB.st!=='ok') return; const L=filtra(S.op); const cols=[['codigo','Código'],['obra','Obra'],['empresa','Empresa'],['cnpj','CNPJ'],['cidade','Cidade'],['uf','UF'],['segmento','Segmento'],['subtipo','Subtipo'],['tipo','Tipo'],['estagio','Estágio'],['valor','Investimento (R$)'],['area_m2','Área (m²)'],['potencia_mw','Potência (MW)'],['empregos','Empregos'],['inicio','Início'],['termino','Término'],['atualizado','Atualizado'],['origem','Fonte'],['conf','Confiabilidade'],['construtora','Construtora'],['canal','Canal de compras'],['detalhes','Detalhes'],['link','Link da fonte']];
   const cel=v=>{ v=v==null?'':String(v); return /[;"\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v; };
-  const linhas=[cols.map(c=>c[1]).join(';'),...L.map(o=>cols.map(([k])=>k==='link'?cel((o.fontes||[])[0]?.url):k==='valor'||k==='area_m2'||k==='potencia_mw'?cel(o[k]!=null?String(o[k]).replace('.',','):''):k==='cnpj'?cel(cnpjF(o.cnpj)):cel(o[k])).join(';'))];
+  const linhas=[cols.map(c=>c[1]).join(';'),...L.map(o=>cols.map(([k])=>k==='link'?cel((o.fontes||[])[0]?.url):k==='canal'?cel(o.canais?.fornecedores||(o.canais?.emails||[])[0]||o.canais?.site):k==='valor'||k==='area_m2'||k==='potencia_mw'?cel(o[k]!=null?String(o[k]).replace('.',','):''):k==='cnpj'?cel(cnpjF(o.cnpj)):cel(o[k])).join(';'))];
   const blob=new Blob(['﻿'+linhas.join('\r\n')],{type:'text/csv;charset=utf-8'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`obras-privadas-${new Date().toISOString().slice(0,10)}.csv`; document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },500); toast(`${L.length} obras exportadas para planilha.`); };
 
 /* ================================================================ moldura */
