@@ -66,7 +66,7 @@ def enriquecer(itens):
     print(f"matérias lidas: {n}/{len(itens)}")
 
 # ------------------------------------------------------------------ Diários Oficiais (Querido Diário)
-QD = "https://queridodiario.ok.org.br/api/gazettes"
+QD_URLS = ["https://api.queridodiario.ok.org.br/gazettes", "https://queridodiario.ok.org.br/api/gazettes"]
 QD_CONSULTAS = [
     '"alvará de construção" galpão', '"alvará de construção" "centro de distribuição"', '"alvará de construção" indústria',
     '"alvará de construção" condomínio', '"alvará de construção" edifício', '"alvará de construção" hospital',
@@ -78,10 +78,13 @@ def diarios(dias=45):
     desde = (HOJE - timedelta(days=dias)).isoformat(); out = {}
     for q in QD_CONSULTAS:
         p = urllib.parse.urlencode({"querystring": q, "published_since": desde, "size": 60, "excerpt_size": 700, "number_of_excerpts": 2, "sort_by": "descending_date"})
-        try:
-            t, _ = get(QD + "?" + p, timeout=60); j = json.loads(t)
-        except Exception as e:
-            print("querido diário", q, e); continue
+        j = None
+        for base in QD_URLS:
+            try:
+                t, _ = get(base + "?" + p, timeout=60); j = json.loads(t); break
+            except Exception as e:
+                print("querido diário", base.split("/")[2], q, e)
+        if j is None: continue
         for g in j.get("gazettes", []):
             cid, uf, data = g.get("territory_name"), (g.get("state_code") or "").upper(), (g.get("date") or "")[:10]
             for ex in (g.get("excerpts") or [])[:2]:
