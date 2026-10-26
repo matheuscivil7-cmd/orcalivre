@@ -154,7 +154,7 @@ def noticias(cache, extras=()):
         fonte = {"t": r.get("_t"), "url": r.get("_l"), "veiculo": r.get("_v"), "data": r.get("_d")}
         o = obras.get(chave)
         if not o:
-            o = obras[chave] = {"id": ("" if dia else "N") + chave, "origem": "diario" if dia else "noticia", "obra": re.sub(r"^((EMPRESA )?N[AÃ]O (INFORMAD[AO]|IDENTIFICAD[AO]|DIVULGAD[AO])|EMPRESA( PRIVADA)?|MULTINACIONAL( \w+)?)\s*/\s*", "", (r.get("obra") or r.get("_t") or "").upper())[:160], "empresa": r.get("empresa"),
+            o = obras[chave] = {"id": ("" if dia else "N") + chave, "origem": "diario" if dia else "noticia", "obra": re.sub(r"^((EMPRESA )?N[AÃ]O (INFORMAD[AO]|IDENTIFICAD[AO]|DIVULGAD[AO])|EMPRESA( PRIVADA)?|MULTINACIONAL( \w+)?|PROPRIET[AÁ]RI[OA]( DA OBRA)?|REQUERENTE)\s*/\s*", "", (r.get("obra") or r.get("_t") or "").upper())[:160], "empresa": r.get("empresa"),
                                 "cidade": r.get("cidade"), "uf": uf or None, "segmento": r.get("segmento") or "OUTROS", "subtipo": r.get("subtipo"), "tipo": r.get("tipo"),
                                 "estagio": r.get("estagio") or "ANÚNCIO", "valor": r.get("valor"), "area_m2": r.get("area_m2"), "unidades": r.get("unidades"),
                                 "empregos": r.get("empregos"), "inicio": r.get("inicio"), "termino": r.get("termino"), "detalhes": r.get("detalhes"),
@@ -173,7 +173,7 @@ def noticias(cache, extras=()):
     for o in obras.values(): o["fontes"] = sorted(o["fontes"], key=lambda f: f["data"] or "", reverse=True)[:8]
     return list(obras.values())
 
-SEMEMP = re.compile(r"^(EMPRESA )?(NAO (INFORMAD|IDENTIFICAD|DIVULGAD|CITAD)|DESCONHECID|SIGILOS)|^(MULTINACIONAL|GRUPO|EMPRESA|INVESTIDOR|FUNDO)( [A-Z]+)?$")
+SEMEMP = re.compile(r"^(EMPRESA )?(NAO (INFORMAD|IDENTIFICAD|DIVULGAD|CITAD)|DESCONHECID|SIGILOS)|^(MULTINACIONAL|GRUPO|EMPRESA|INVESTIDOR|FUNDO)( [A-Z]+)?$|^(PROPRIETARI[OA]|REQUERENTE|INTERESSAD[OA]|INCORPORADORA|CONSTRUTORA)( DA OBRA| DO IMOVEL)?$")
 
 # ------------------------------------------------------------------ 2. BNDES
 BNDES_RES = "6f56b78c-510f-44b6-8274-78a5b7e931f4"
@@ -279,7 +279,7 @@ def main():
     json.dump(cache, open(CACHE, "w"), ensure_ascii=False, separators=(",", ":"))
     fontes_ok["diarios"] = sum(1 for o in obras if o.get("origem") == "diario")
     for etapa, f in (("cruzamento", lambda: X.cruzar(obras)), ("confiabilidade", lambda: X.confianca(obras)),
-                     ("canais de compra", lambda: X.fornecedores(obras, f"{DIR}/empresas.json", int(os.environ.get("MAX_EMPRESAS", "260"))))):
+                     ("canais de compra", lambda: X.fornecedores(obras, f"{DIR}/empresas.json", int(os.environ.get("MAX_EMPRESAS", "120"))))):
         try: f()
         except Exception as e: print("FALHA", etapa, e)
     for o in obras:
