@@ -118,14 +118,17 @@ const css=`
 .eqp code{font:800 13px ui-monospace,monospace;background:#f1f2f7;padding:2px 7px;border-radius:6px;letter-spacing:.08em}.eqp select{font:inherit;padding:3px 6px;border-radius:7px;border:1px solid var(--line,#d9dce6)}
 .eqa{display:flex;gap:6px;flex-wrap:wrap;align-items:center}.eqa input{padding:6px 9px;border:1px solid var(--line,#d9dce6);border-radius:8px;font:inherit;font-size:13px;width:170px}
 @media(max-width:700px){.eqform{grid-template-columns:1fr 1fr}.opdec .lb{width:100%;padding:0}}
+
+.sparq{display:grid;gap:6px}.sparq button{display:flex;justify-content:space-between;gap:10px;align-items:center;text-align:left;border:1px solid var(--line,#e3e5ee);background:var(--card,#fff);border-radius:10px;padding:7px 10px;cursor:pointer;font:inherit;font-size:13px}
+.sparq button:hover{border-color:var(--accent,#5b5bd6)}.sparq span{color:var(--muted);font-size:11.5px;white-space:nowrap}
 `;
 const st=document.createElement('style'); st.id='opcss'; st.textContent=css; document.head.appendChild(st);
 
 /* ================================================================ menu */
 (function menu(){ const i=NAV.findIndex(x=>x[0]==='g'&&x[1]==='Orçamento aberto');
-  const add=[['g','Obras privadas'],['opRadar','Radar de obras privadas','search'],['opMinhas','Minhas oportunidades','list']];
+  const add=[['g','Obras privadas'],['opRadar','Radar de obras privadas','search'],['opSP','Alto padrão SP','star'],['opMinhas','Minhas oportunidades','list']];
   NAV.splice(i<0?NAV.length:i,0,...add); for(const a of add) if(a[0]!=='g') LIVRES.push(a[0]); })();
-const TT={opRadar:'Radar de obras privadas',opMinhas:'Minhas oportunidades'};
+const TT={opRadar:'Radar de obras privadas',opSP:'Alto padrão SP',opMinhas:'Minhas oportunidades'};
 const head=(t,s,a='')=>`<div class="head"><div class="ofh"><span class="ic">${SV(IO.pred)}</span><div><h1>${t}</h1>${s?`<div class="sub">${s}</div>`:''}</div></div>${a?`<div class="actions">${a}</div>`:''}</div>`;
 
 /* ================================================================ dados */
@@ -135,7 +138,7 @@ async function carregar(force){ if(DB.st==='ok'&&!force) return; if(DB.st==='loa
     DB.obras=(j.obras||[]).map(o=>({...o,_t:N([o.obra,o.empresa,o.cidade,o.uf,o.segmento,o.subtipo,o.detalhes,o.tipo].join(' '))})); DB.meta={gerado:j.gerado,fontes:j.fontes,total:j.total}; DB.st='ok'; DB.err=''; }
   catch(e){ DB.st='err'; DB.err='O radar ainda está sendo preparado. A primeira coleta roda uma vez por dia; tente novamente em alguns minutos.'; }
   if(['opRadar','opMinhas'].includes(S.view)) render(); }
-const achar=id=>DB.obras.find(o=>o.id===id)||minhas().find(m=>m.oid===id);
+const achar=id=>DB.obras.find(o=>o.id===id)||(typeof SPD!=='undefined'?SPD.itens.find(o=>o.id===id):null)||minhas().find(m=>m.oid===id);
 
 /* ================================================================ radar */
 S.op=S.op||{q:'',uf:'',seg:'',est:'',org:'',vmin:'',conf:'',per:'180',ord:'rec',n:30};
@@ -334,7 +337,7 @@ function eqPainel(){ if(!eqLogado()) return `<div class="eqp"><span class="ic">$
 const ETAPAS=[['prospeccao','Prospecção'],['contato','Contato feito'],['reuniao','Visita / reunião'],['proposta','Proposta enviada'],['negociacao','Negociação'],['ganha','Ganha'],['perdida','Perdida']];
 ACT.opSeguir=async d=>{ const ja=seguida(d.id);
   if(ja){ await Store.del(ja.id); toast('Removida das suas oportunidades.'); }
-  else { const o=DB.obras.find(x=>x.id===d.id); if(!o) return; const {_t,...snap}=o;
+  else { const o=DB.obras.find(x=>x.id===d.id)||SPD.itens.find(x=>x.id===d.id); if(!o) return; const {_t,...snap}=o;
     await Store.save({...snap,id:uid(),oid:o.id,kind:'opv',etapa:'prospeccao',notas:'',contatos:[],follow:'',orc:null,proposta:null,criado:Date.now()}); toast('Adicionada em Minhas oportunidades.'); }
   if(!$('#modal').hidden&&S.opf) remodal(); render(); };
 const hoje=()=>new Date().toISOString().slice(0,10);
@@ -383,6 +386,87 @@ ACT.opCsv=()=>{ if(DB.st!=='ok') return; const L=filtra(S.op); const cols=[['cod
   const cel=v=>{ v=v==null?'':String(v); return /[;"\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v; };
   const linhas=[cols.map(c=>c[1]).join(';'),...L.map(o=>cols.map(([k])=>k==='link'?cel((o.fontes||[])[0]?.url):k==='canal'?cel(o.canais?.fornecedores||(o.canais?.emails||[])[0]||o.canais?.site):k==='valor'||k==='area_m2'||k==='potencia_mw'?cel(o[k]!=null?String(o[k]).replace('.',','):''):k==='cnpj'?cel(cnpjF(o.cnpj)):cel(o[k])).join(';'))];
   const blob=new Blob(['﻿'+linhas.join('\r\n')],{type:'text/csv;charset=utf-8'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`obras-privadas-${new Date().toISOString().slice(0,10)}.csv`; document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },500); toast(`${L.length} obras exportadas para planilha.`); };
+
+
+/* ================================================================ alto padrão SP */
+const SPD={st:'',itens:[],meta:null};
+async function carregarSP(){ if(SPD.st==='ok'||SPD.st==='load') return; SPD.st='load';
+  try{ const j=await fetch('dados/obras/sp_alto.json?v='+Math.floor(Date.now()/36e5),{cache:'no-cache'}).then(r=>{ if(!r.ok) throw new Error(r.status); return r.json(); });
+    SPD.itens=(j.itens||[]).map(o=>({...o,_t:N([o.obra,o.arquitetura,o.construtora,o.incorporadora,o.bairro,o.endereco,o.uso,o.detalhes,o.tipo,o.processo].join(' '))})); SPD.meta=j; SPD.st='ok'; }
+  catch(e){ SPD.st='err'; }
+  if(S.view==='opSP'||S.view==='opMinhas') render(); }
+const SPEST={'PROJETO APROVADO':'#0f9d74','EXECUÇÃO LIBERADA':'#e0464e','LICENCIAMENTO':'#c27a06','ANÚNCIO':'#8b5cf6','PROJETO':'#4f7cff','APROVAÇÃO':'#0f9d74','LANÇAMENTO':'#c27a06','EM OBRAS':'#e0464e','INAUGURADA':'#6b7385'};
+const SPORIG={alvara:['Alvará','#0f9d74'],licenca:['Licença ambiental','#c27a06'],noticia:['Notícia','#7c5cf6']};
+const spProprias=()=>lg('orcalivre.sp.proprias',null)||(SPD.meta?.proprias)||[];
+const spPropria=o=>{ const t=N([o.incorporadora,o.construtora].join(' ')); return !!t.trim()&&spProprias().some(p=>p&&new RegExp('\\b'+N(p).replace(/[^A-Z0-9 ]/g,'')+'\\b').test(t)); };
+S.sp=S.sp||{q:'',orig:'',est:'',uso:'',bairro:'',alto:'1',cons:'livre',per:'365',n:30};
+function spFiltra(F){ const terms=N(F.q).split(/\s+/).filter(w=>w.length>1); const per=+F.per||0;
+  return SPD.itens.filter(o=>(!F.orig||o.origem===F.orig)&&(!F.est||o.estagio===F.est)&&(!F.uso||(o.uso||'')===F.uso)&&(!F.bairro||(o.bairro||'')===F.bairro)
+    &&(F.alto!=='1'||o.alto)&&(F.cons==='todas'||(F.cons==='livre'?(!o.construtora&&!spPropria(o)):F.cons==='arq'?!!o.arquitetura:spPropria(o)))
+    &&(!per||dias(o.atualizado)<=per)&&terms.every(w=>o._t.includes(w))).sort((a,b)=>String(b.atualizado||'').localeCompare(String(a.atualizado||''))); }
+const spSel=(k,lab,opts,val)=>`<label class="field"><span>${lab}</span><select data-spf="${k}">${opts.map(([v,l])=>`<option value="${esc(v)}" ${String(val)===String(v)?'selected':''}>${esc(l)}</option>`).join('')}</select></label>`;
+function spCard(o){ const ec=SPEST[o.estagio]||'#8b5cf6', og=SPORIG[o.origem]||['Fonte','#6b7385'], seg=seguida(o.id), nv=dias(o.primeira_vez)<=7, pr=spPropria(o);
+  const f0=(o.fontes||[])[0];
+  return `<article class="opc" style="--ec:${ec}"><div style="min-width:0"><div class="t1"><span class="est">${esc(o.estagio||'')}</span>${o.uso?`<span class="tag2">${esc(o.uso)}</span>`:''}<span class="org" style="color:${og[1]}">${og[0]}</span>${nv?'<span class="nv">NOVA</span>':''}
+     ${String(o.zona||'').startsWith('ZER')?'<span class="cf" style="--cc:#0f9d74" title="Zona Exclusivamente Residencial">ZER</span>':''}${pr?'<span class="cf" style="--cc:#6b7385" title="Incorporadora/construtora que costuma construir as próprias obras">construção própria</span>':!o.construtora?'<span class="cf" style="--cc:#0f9d74" title="Nenhuma construtora identificada nas fontes">sem construtora</span>':''}
+     <span>${esc(o.bairro||'São Paulo')}</span><span>· ${fd(o.atualizado)}</span></div>
+    <h4 data-act="spFicha" data-id="${esc(o.id)}">${esc(o.obra||'')}</h4>${o.detalhes?`<div class="dt">${esc(o.detalhes)}</div>`:''}
+    <div class="mt">${o.arquitetura?`<span>Arquitetura: <b>${esc(o.arquitetura)}</b></span>`:''}${o.construtora?`<span>Construtora: <b>${esc(o.construtora)}</b></span>`:''}${o.incorporadora?`<span>Incorporadora: <b>${esc(o.incorporadora)}</b></span>`:''}${o.area_terreno?`<span>Terreno: <b>${Q(o.area_terreno)} m²</b></span>`:''}${o.area_m2?`<span>Área: <b>${Q(o.area_m2)} m²</b></span>`:''}${o.zona?`<span>Zona: <b>${esc(o.zona)}</b></span>`:''}</div></div>
+   <div class="acts"><div class="val">${o.valor?brlc(o.valor):''}</div><button class="btn sm primary" data-act="spFicha" data-id="${esc(o.id)}">Ver ficha</button><button class="btn sm ${seg?'on':''}" data-act="opSeguir" data-id="${esc(o.id)}">${io('star',13)}${seg?'Acompanhando':'Acompanhar'}</button>${f0&&f0.url?`<a class="btn sm" href="${esc(f0.url)}" target="_blank" rel="noopener">${io('ext',13)}Fonte</a>`:''}</div></article>`; }
+VIEWS.opSP=()=>{ if(SPD.st==='') carregarSP(); const F=S.sp;
+  if(SPD.st!=='ok') return head('Alto padrão SP','Obras residenciais e comerciais de alto padrão na cidade de São Paulo')+(SPD.st==='err'?'<div class="empty"><b>Radar de SP ainda em preparação</b>A primeira coleta roda uma vez por dia. Tente novamente em alguns minutos.</div>':'<div class="empty"><b>Carregando…</b></div>');
+  const L=spFiltra(F), vis=L.slice(0,F.n); const base=SPD.itens;
+  const bairros=[...new Set(base.map(o=>o.bairro).filter(Boolean))].sort(), usos=[...new Set(base.map(o=>o.uso).filter(Boolean))].sort();
+  const cB={}; for(const o of L) if(o.bairro) cB[o.bairro]=(cB[o.bairro]||0)+1;
+  const arq={}; for(const o of base.filter(o=>o.arquitetura&&(F.alto!=='1'||o.alto))){ const k=o.arquitetura.trim(); arq[k]=arq[k]||{n:0,livre:0}; arq[k].n++; if(!o.construtora&&!spPropria(o)) arq[k].livre++; }
+  const rank=Object.entries(arq).sort((a,b)=>b[1].livre-a[1].livre||b[1].n-a[1].n).slice(0,12);
+  const aprov=L.filter(o=>o.estagio==='PROJETO APROVADO').length, ger=SPD.meta?.gerado?new Date(SPD.meta.gerado).toLocaleString('pt-BR',{dateStyle:'short',timeStyle:'short'}):'';
+  return head('Alto padrão SP',`Residenciais e comerciais de alto padrão na capital: alvarás da Prefeitura, licenças e notícias com escritório de arquitetura${ger?' · atualizado em '+ger:''}`,`<button class="btn" data-act="spProprias">${io('pred')} Construção própria (${spProprias().length})</button>`)+
+   `<div class="lcbar"><label class="field grow"><span>Buscar</span><input id="spQ" value="${esc(F.q)}" placeholder="Escritório, bairro, rua, incorporadora… (ex.: Jardim Paulista, Isay Weinfeld)" autocomplete="off"></label>
+     ${spSel('alto','Padrão',[['1','Só alto padrão (bairros nobres/ZER)'],['','Toda a cidade']],F.alto)}${spSel('cons','Construtora',[['livre','Sem construtora definida'],['arq','Com arquiteto identificado'],['propria','Construção própria'],['todas','Todas']],F.cons)}
+     ${spSel('est','Etapa',[['','Todas'],...Object.keys(SPEST).map(e=>[e,e])],F.est)}${spSel('orig','Fonte',[['','Todas'],['alvara','Alvarás da Prefeitura'],['licenca','Licenças ambientais'],['noticia','Notícias (IA)']],F.orig)}
+     ${spSel('bairro','Bairro / distrito',[['','Todos'],...bairros.map(b=>[b,b])],F.bairro)}${spSel('uso','Uso',[['','Todos'],...usos.map(u=>[u,u])],F.uso)}${spSel('per','Atualizadas há',[['90','90 dias'],['180','6 meses'],['365','1 ano'],['0','Qualquer data']],F.per)}</div>
+   <div class="opkp" style="margin-top:14px"><div><div class="l">Obras no filtro</div><div class="v">${nf0.format(L.length)}</div><div class="s">de ${nf0.format(base.length)} mapeadas em SP</div></div>
+     <div><div class="l">Projeto aprovado, sem execução</div><div class="v">${nf0.format(aprov)}</div><div class="s">melhor momento para abordar</div></div>
+     <div><div class="l">Com arquiteto identificado</div><div class="v">${nf0.format(L.filter(o=>o.arquitetura).length)}</div><div class="s">pelas notícias</div></div>
+     <div><div class="l">Escritórios mapeados</div><div class="v">${nf0.format(Object.keys(arq).length)}</div><div class="s">atuando em alto padrão</div></div></div>
+   <div class="oppan"><div><h3>Por bairro / distrito</h3>${spBarras(cB)}</div><div><h3>Escritórios de arquitetura</h3>${rank.length?`<div class="sparq">${rank.map(([k,v])=>`<button data-act="spArq" data-v="${esc(k)}"><b>${esc(k)}</b><span>${v.n} obra${v.n>1?'s':''}${v.livre?` · ${v.livre} sem construtora`:''}</span></button>`).join('')}</div>`:'<span class="note">Os escritórios aparecem conforme as notícias citam os projetos.</span>'}</div></div>
+   <div class="lclist">${vis.map(spCard).join('')||'<div class="empty"><b>Nenhuma obra encontrada</b>Afrouxe os filtros (ex.: "Construtora: Todas" ou "Toda a cidade").</div>'}</div>
+   ${L.length>vis.length?`<div style="text-align:center;margin-top:14px"><button class="btn" data-act="spMais">Mostrar mais (${nf0.format(L.length-vis.length)} restantes)</button></div>`:''}
+   <p class="opnote">Alvarás: relatório mensal de alvarás emitidos pela Prefeitura (edificação nova e reforma, exceto HIS/HMP), com endereço, distrito, zoneamento e área do terreno do GeoSampa. "Projeto aprovado" = alvará de aprovação sem alvará de execução ainda; "Execução liberada" = obra autorizada a começar. Os alvarás não informam arquiteto nem proprietário: em residências o radar mostra só a rua, sem número e sem dono. Escritório de arquitetura, construtora e incorporadora vêm das notícias lidas por IA; confira na fonte.</p>`; };
+function spBarras(cont){ const L=Object.entries(cont).sort((a,b)=>b[1]-a[1]).slice(0,10); const m=L[0]?L[0][1]:1;
+  return `<div class="ophb">${L.map(([k,n])=>`<button data-act="spQuick" data-v="${esc(k)}" title="Filtrar por ${esc(k)}">${esc(k)}</button><div class="tr"><i style="width:${(n/m*100).toFixed(1)}%"></i></div><div class="n">${n}</div>`).join('')||'<span class="note">Sem dados.</span>'}</div>`; }
+let spT=0;
+document.addEventListener('input',e=>{ if(e.target.id==='spQ'){ S.sp.q=e.target.value; S.sp.n=30; clearTimeout(spT); spT=setTimeout(()=>{ const p=e.target.selectionStart; render(); const i=$('#spQ'); if(i){ i.focus(); try{ i.setSelectionRange(p,p); }catch(_){} } },260); } });
+document.addEventListener('change',e=>{ const k=e.target.dataset.spf; if(k){ S.sp[k]=e.target.value; S.sp.n=30; render(); } });
+ACT.spQuick=d=>{ S.sp.bairro=S.sp.bairro===d.v?'':d.v; S.sp.n=30; render(); };
+ACT.spArq=d=>{ S.sp.q=d.v; S.sp.cons='todas'; S.sp.n=30; render(); };
+ACT.spMais=()=>{ S.sp.n+=30; render(); };
+ACT.spProprias=()=>{ modal(()=>dlg('<h2 style="margin:0;font-size:17px">Incorporadoras com construção própria</h2>',
+  `<p class="note" style="margin-top:0">Obras dessas empresas recebem a etiqueta "construção própria" e saem do filtro "Sem construtora definida". Uma empresa por linha.</p><textarea id="spPr" rows="12" style="width:100%">${esc(spProprias().join('\n'))}</textarea>`,
+  `<button class="btn" data-act="spPrReset">Restaurar padrão</button><button class="btn primary" data-act="spPrSalvar">Salvar</button>`)); };
+ACT.spPrSalvar=()=>{ const v=($('#spPr')?.value||'').split('\n').map(x=>x.trim()).filter(Boolean); ls('orcalivre.sp.proprias',v); closeModal(); render(); toast('Lista atualizada.'); };
+ACT.spPrReset=()=>{ try{ localStorage.removeItem('orcalivre.sp.proprias'); }catch(e){} closeModal(); render(); };
+const spAchar=id=>SPD.itens.find(o=>o.id===id)||minhas().find(m=>m.oid===id);
+ACT.spFicha=d=>{ const o=spAchar(d.id); if(!o) return; S.opf=d.id;
+  modal(()=>{ const x=spAchar(S.opf)||o; const sg=seguida(x.oid||x.id); const kv=(l,v,c='')=>`<div class="${c}">${l}<b>${v==null||v===''?'—':v}</b></div>`;
+    const loc=[x.endereco,x.bairro,'São Paulo, SP'].filter(Boolean).join(', ');
+    const arq=x.arquitetura?`<div class="row"><span class="lb">Escritório de arquitetura</span><div class="bt"><a class="btn sm primary" target="_blank" rel="noopener" href="${lkC(x.arquitetura)}">${io('pred',13)}${esc(x.arquitetura)} no LinkedIn</a><a class="btn sm" target="_blank" rel="noopener" href="${lkP('sócio '+curta(x.arquitetura))}">${io('user',13)}Sócios / arquitetos</a><a class="btn sm" target="_blank" rel="noopener" href="${gS(x.arquitetura+' arquitetura site')}">${io('ext',13)}Site</a><a class="btn sm" target="_blank" rel="noopener" href="${gS(x.arquitetura+' instagram')}">${io('ext',13)}Instagram</a></div></div>`:'';
+    const dicaAlv=x.origem==='alvara'?`<div class="row"><span class="lb">Quem é o responsável</span><div style="flex:1" class="note">O relatório de alvarás não informa o arquiteto. Caminhos: a placa de obra (obrigatória) traz os responsáveis técnicos pelo projeto e pela execução; o processo ${esc(x.processo||'')}${x.sei?` (SEI ${esc(x.sei)})`:''} pode ser consultado na Prefeitura; e a busca abaixo procura o endereço em notícias e portfólios de arquitetura.<div class="bt" style="margin-top:6px"><a class="btn sm" target="_blank" rel="noopener" href="${gS('"'+(x.endereco||'')+'" '+(x.bairro||'')+' arquitetura projeto')}">${io('ext',13)}Procurar projeto deste endereço</a><a class="btn sm" target="_blank" rel="noopener" href="${gS('"'+(x.processo||'')+'"')}">${io('ext',13)}Procurar o processo</a></div></div></div>`:'';
+    const corpo=`<div class="opf"><div class="hdr"><span><b>Código:</b> ${esc(x.codigo||'')} · <b>Atualizado:</b> ${fd(x.atualizado)} · <b>No radar desde:</b> ${fd(x.primeira_vez)}</span><span><b>Fonte:</b> ${(SPORIG[x.origem]||['—'])[0]}</span></div>
+      <h5>Dados da obra</h5><div class="kv">${kv('Obra',esc(x.obra),'w3')}${kv('Bairro / distrito',esc(x.bairro||'—'))}${kv('Endereço',esc(x.endereco||(x.residencia_pf?'Residência: só a rua é exibida':'—')))}${kv('Localização',`<a href="https://www.google.com/maps/search/${encodeURIComponent(loc)}" target="_blank" rel="noopener">${io('map',13)} Ver no mapa</a>`)}
+       ${kv('Etapa',esc(x.estagio||''))}${kv('Tipo',esc(x.tipo||x.uso||'—'))}${kv('Zoneamento',esc(x.zona||'—'))}${x.area_terreno?kv('Área do terreno',Q(x.area_terreno)+' m²'):''}${x.area_construida_atual?kv('Área construída atual (IPTU)',Q(x.area_construida_atual)+' m²'):''}${x.area_m2?kv('Área do projeto',Q(x.area_m2)+' m²'):''}${x.unidades?kv('Unidades',nf0.format(x.unidades)):''}${x.valor?kv('Valor / VGV',brl(x.valor)):''}
+       ${kv('Arquitetura',esc(x.arquitetura||'Não informado'))}${kv('Construtora',x.construtora?esc(x.construtora):(spPropria(x)?'Construção própria (incorporadora)':'<span style="color:#0f9d74">Nenhuma identificada</span>'))}${kv('Incorporadora / empresa',esc(x.incorporadora||'—'))}${x.processo?kv('Processo',esc(x.processo)+(x.sei?' · SEI '+esc(x.sei):'')):''}</div>
+      ${x.detalhes?`<h5>Detalhes</h5><p class="det">${esc(x.detalhes)}</p>`:''}
+      ${(x.eventos||[]).length?`<h5>Histórico do licenciamento</h5><div class="det">${x.eventos.map(e=>`<div>• ${esc(e)}</div>`).join('')}</div>`:''}
+      ${(x.pessoas||[]).length?`<h5>Citados nas fontes</h5><div class="oppp">${x.pessoas.map(p=>`<div><span>${esc(p.cargo||'Citado')}</span><b>${esc(p.nome)}${p.empresa?` <small>· ${esc(p.empresa)}</small>`:''}</b><a class="btn sm" target="_blank" rel="noopener" href="${lkP(p.nome+' '+curta(p.empresa||x.arquitetura||''))}">${io('user',13)}LinkedIn</a></div>`).join('')}</div>`:''}
+      <h5>Como chegar ao decisor</h5><div class="opdec">${arq}${dicaAlv}${x.incorporadora?decisor({...x,empresa:x.incorporadora}).replace(/^<h5>[^<]*<\/h5><div class="opdec">/,'').replace(/<\/div>\s*$/,''):eqBloco({...x,empresa:x.arquitetura||x.endereco||x.obra})}</div>
+      <h5>Fontes</h5><div class="src">${(x.fontes||[]).map(f=>`<a href="${esc(f.url||'#')}" target="_blank" rel="noopener">${io('ext',15)}<span>${esc(f.t||'')}<small>${esc(f.veiculo||'')} · ${fd(f.data)}</small></span></a>`).join('')}</div></div>`;
+    return dlg(`<div class="eyebrow">${esc(x.uso||'')} · ${esc(x.estagio||'')}</div><h2 style="margin:4px 0 0;font-size:17px;line-height:1.35">${esc(x.obra||'')}</h2>`, corpo,
+      `<button class="btn" data-act="opOrc">Criar orçamento</button><button class="btn ${sg?'':'primary'}" data-act="opSeguir" data-id="${esc(x.oid||x.id)}">${io('star')} ${sg?'Acompanhando':'Acompanhar'}</button>`); }); };
+
+const _opF=ACT.opFicha; ACT.opFicha=d=>String(d.id||'').startsWith('SP')?ACT.spFicha(d):_opF(d);
+if(S.view==='opMinhas') carregarSP();
 
 /* ================================================================ moldura */
 const _r=render;
