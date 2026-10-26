@@ -152,21 +152,16 @@ RUIM = re.compile(r"(linkedin|facebook|instagram|youtube|twitter|x\.com|glassdoo
 FORN = re.compile(r"(fornecedor|supplier|suprimento|compras|procurement|purchas|seja[-_ ]um|cadastro[-_ ]de[-_ ]forn|vendor|sourcing|parceir)", re.I)
 MAIL_OK = re.compile(r"^(compras?|suprimentos?|fornecedor(es)?|supplier|suppliers|procurement|purchas\w*|cadastro\w*|vendor\w*|sourcing|comercial|contato|sac|faleconosco|engenharia|obras|projetos?|expansao|investimentos?)[\w.\-]*@", re.I)
 
+class Bloqueado(Exception): pass
+
 def busca_web(q):
-    """Resultados (url, título) do Bing; DuckDuckGo como reserva."""
+    """Resultados (url, título) da versão HTML do DuckDuckGo (o Bing devolve captcha para robôs)."""
+    h, _ = get("https://html.duckduckgo.com/html/?" + urllib.parse.urlencode({"q": q, "kl": "br-pt"}), 900_000)
+    if "anomaly-modal" in h or "anomaly.js" in h: raise Bloqueado()
     res = []
-    try:
-        h, _ = get("https://www.bing.com/search?" + urllib.parse.urlencode({"q": q, "setlang": "pt-BR", "cc": "BR"}), 900_000)
-        for m in re.finditer(r'<li class="b_algo".*?<h2[^>]*><a[^>]+href="(https?://[^"]+)"[^>]*>(.*?)</a>', h, re.S):
-            res.append((html.unescape(m.group(1)), re.sub(r"<[^>]+>", "", html.unescape(m.group(2)))))
-    except Exception: pass
-    if not res:
-        try:
-            h, _ = get("https://html.duckduckgo.com/html/?" + urllib.parse.urlencode({"q": q, "kl": "br-pt"}), 900_000)
-            for m in re.finditer(r'class="result__a" href="([^"]+)"[^>]*>(.*?)</a>', h, re.S):
-                u = html.unescape(m.group(1)); mm = re.search(r"uddg=([^&]+)", u)
-                res.append((urllib.parse.unquote(mm.group(1)) if mm else u, re.sub(r"<[^>]+>", "", html.unescape(m.group(2)))))
-        except Exception: pass
+    for m in re.finditer(r'class="result__a" href="([^"]+)"[^>]*>(.*?)</a>', h, re.S):
+        u = html.unescape(m.group(1)); mm = re.search(r"uddg=([^&]+)", u)
+        res.append((urllib.parse.unquote(mm.group(1)) if mm else u, re.sub(r"<[^>]+>", "", html.unescape(m.group(2)))))
     return res[:10]
 
 def dominio(u):
@@ -181,32 +176,31 @@ def emails_de(url, dom):
     return sorted(e for e in achados if MAIL_OK.match(e) and (not base or base in e.split("@")[1]) and not e.endswith((".png", ".jpg", ".svg", ".webp")))[:4]
 
 def canais(nome):
-    tok = [w.lower() for w in chave_empresa(nome).split() if len(w) > 2]
-    r1 = busca_web(f'"{nome}" portal de fornecedores OR "seja um fornecedor" OR suprimentos')
-    time.sleep(1.2)
+    tok = [w.lower() for w in chave_empresa(nome).split() if len(w) > 3] or [w.lower() for w in chave_empresa(nome).split() if len(w) > 2]
     site = forn = ""
-    for u, t in r1:
-        d = dominio(u)
-        if not d or RUIM.search(d): continue
-        casa = any(x in d for x in tok)
-        if not forn and FORN.search(u + " " + t) and casa: forn = u
-        if not site and casa: site = "https://" + d
-    if not site:
-        for u, t in busca_web(f"{nome} site oficial"):
+    for q in (f"{nome} fornecedores", f"{nome} site oficial"):
+        for u, t in busca_web(q):
             d = dominio(u)
-            if d and not RUIM.search(d) and any(x in d for x in tok): site = "https://" + d; break
-        time.sleep(1.2)
+            if not d or RUIM.search(d) or not any(x in d.replace("-", "") for x in tok): continue
+            if not forn and FORN.search(u + " " + t): forn = u
+            if not site: site = "https://" + d
+        time.sleep(3)
+        if site: break
     mails = []
     if forn: mails += emails_de(forn, dominio(forn))
     if site and len(mails) < 2:
         for p in ("", "/contato", "/fale-conosco", "/fornecedores"):
             mails += [m for m in emails_de(site + p, dominio(site)) if m not in mails]
             if len(mails) >= 3: break
-    return {"site": site or None, "fornecedores": forn or None, "emails": mails[:4], "verificado": HOJE.isoformat()}
+    return {"site": site or None, "fornecedores": forn or None, "emails": mails[:4], "verificado": HOJE.isoformat(), "v": 2}
 
-def fornecedores(obras, arq, maximo=260):
+def fornecedores(obras, arq, maximo=120, minutos=35):
     cache = json.load(open(arq)) if os.path.exists(arq) else {}
-    lim = (HOJE - timedelta(days=60)).isoformat()
+    achou = lambda c: c.get("site") or c.get("fornecedores") or c.get("emails")
+    lim_ok, lim_vazio = (HOJE - timedelta(days=60)).isoformat(), (HOJE - timedelta(days=10)).isoformat()
+    def vencido(c):
+        if not c or c.get("v") != 2: return True
+        return c.get("verificado", "") < (lim_ok if achou(c) else lim_vazio)
     emp = {}
     for o in obras:
         if not o.get("empresa") or o.get("origem") == "aneel" and not o.get("valor"): continue
@@ -214,17 +208,22 @@ def fornecedores(obras, arq, maximo=260):
         if not k: continue
         peso = (o.get("valor") or 0) + o.get("conf", 0) * 1e6
         if k not in emp or peso > emp[k][1]: emp[k] = (o["empresa"], peso)
-    fila = [(k, n) for k, (n, p) in sorted(emp.items(), key=lambda x: -x[1][1]) if (cache.get(k) or {}).get("verificado", "") < lim][:maximo]
+    fila = [(k, n) for k, (n, p) in sorted(emp.items(), key=lambda x: -x[1][1]) if vencido(cache.get(k))][:maximo]
     print(f"canais de compra: {len(fila)} empresas para pesquisar ({len(cache)} no cache)")
-    def um(kn):
-        try: return kn[0], canais(kn[1])
-        except Exception as e: print("canais", kn[1], e); return kn[0], None
-    with ThreadPoolExecutor(4) as ex:
-        for i, (k, c) in enumerate(ex.map(um, fila)):
-            if c: cache[k] = c
-            if i % 40 == 39: print(f"  canais: {i + 1}/{len(fila)}")
+    fim, ok, pausas = time.time() + minutos * 60, 0, 0
+    for i, (k, n) in enumerate(fila):
+        if time.time() > fim: print("  canais: tempo esgotado, continua amanhã"); break
+        try:
+            c = canais(n); cache[k] = c; ok += bool(achou(c))
+        except Bloqueado:
+            pausas += 1; print("  busca bloqueada temporariamente; pausa")
+            if pausas > 2: break
+            time.sleep(90)
+        except Exception as e: print("canais", n, e)
+        if i % 20 == 19: print(f"  canais: {i + 1}/{len(fila)}, {ok} com canal")
+    print(f"canais de compra: {ok} empresas com canal encontrado nesta rodada")
     json.dump(cache, open(arq, "w"), ensure_ascii=False, separators=(",", ":"))
     for o in obras:
         c = cache.get(chave_empresa(o.get("empresa")))
-        if c and (c.get("site") or c.get("fornecedores") or c.get("emails")):
-            o["canais"] = {k: v for k, v in c.items() if k != "verificado" and v}
+        if c and achou(c):
+            o["canais"] = {k: v for k, v in c.items() if k not in ("verificado", "v") and v}
