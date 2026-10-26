@@ -15,6 +15,7 @@ UA = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.3
 HOJE = datetime.now(timezone.utc).date()
 DIAS_NOTICIA = 120
 MAX_NOVAS = int(os.environ.get("MAX_NOVAS", "450"))
+CARGA_INICIAL = "2026-10-26"  # na primeira coleta tudo entrou no mesmo dia; usa a data da própria fonte
 UFS = "AC AL AP AM BA CE DF ES GO MA MT MS MG PA PB PR PE PI RJ RN RS RO RR SC SP SE TO".split()
 
 def get(url, n=8_000_000, tent=3):
@@ -261,7 +262,10 @@ def main():
     for o in obras:
         o["codigo"] = "OL" + hashlib.sha1(o["id"].encode()).hexdigest()[:6].upper()
         o["novo"] = o["id"] not in anterior
-        o["primeira_vez"] = anterior.get(o["id"], {}).get("primeira_vez") or HOJE.isoformat()
+        pv = anterior.get(o["id"], {}).get("primeira_vez")
+        if not pv or pv == CARGA_INICIAL:
+            pv = min((o.get("criado") or o.get("atualizado") or HOJE.isoformat())[:10], HOJE.isoformat()) if (not anterior or pv == CARGA_INICIAL) else HOJE.isoformat()
+        o["primeira_vez"] = pv
         for k in [k for k, v in o.items() if v in (None, "", [])]: del o[k]
     obras.sort(key=lambda o: (o.get("atualizado") or ""), reverse=True)
     json.dump({"gerado": datetime.now(timezone.utc).isoformat(timespec="minutes"), "fontes": fontes_ok, "total": len(obras), "obras": obras},
