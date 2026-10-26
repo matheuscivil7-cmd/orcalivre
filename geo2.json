@@ -1,0 +1,531 @@
+{
+ "cands": [
+  "geoportal:GEOSAMPA_zoneamento_geoambiental_apa_borore",
+  "geoportal:GEOSAMPA_zoneamento_geoambiental_apa_cm",
+  "geoportal:arruamento_aprovado",
+  "geoportal:patrimonio_cultural_bairro_ambiental",
+  "geoportal:zoneamento_classificacao_viaria",
+  "geoportal:controle_uso_via_publica_geoinfra",
+  "geoportal:distrito_municipal",
+  "geoportal:perimetro_zoneamento_revogado_lei13885",
+  "geoportal:perimetro_zona_lei_18081_24",
+  "geoportal:perimetro_zona_lei_18177_24",
+  "geoportal:zoneamento_2016_map1",
+  "geoportal:patrimonio_cultural_selo_valor_cultural",
+  "geoportal:sede_subprefeitura",
+  "geoportal:subprefeitura",
+  "geoportal:uso_predominante_solo_2014_60",
+  "geoportal:uso_predominante_solo_2018_60",
+  "geoportal:uso_predominante_solo_2021_60",
+  "geoportal:uso_predominante_solo_2014_simples",
+  "geoportal:uso_predominante_solo_2018_simples",
+  "geoportal:uso_predominante_solo_2021_simples",
+  "geoportal:zona_especial_preservacao_cultural_apc",
+  "geoportal:zona_azul",
+  "geoportal:zona_fiscal",
+  "geoportal:zona_origem_destino",
+  "geoportal:zoneamento_corredor_uso",
+  "geoportal:zona_ocupacao_especial_aiu"
+ ],
+ "lote_cidadao": [
+  {
+   "cd_identificador": 6492402,
+   "cd_identificador_original_lote": 10497783,
+   "cd_setor_fiscal": "148",
+   "cd_tipo_quadra": "F",
+   "tx_tipo_quadra": "FISCAL",
+   "cd_quadra_fiscal": "063",
+   "cd_subquadra_fiscal": null,
+   "cd_condominio": "00",
+   "cd_tipo_lote": "F",
+   "tx_tipo_lote": "FISCAL",
+   "cd_lote": "0024",
+   "cd_situacao": 1,
+   "cd_digito_sql": "0",
+   "cd_logradouro": "754358",
+   "nm_logradouro_completo": "AV ARRAIAS DO ARAGUAIA",
+   "cd_numero_porta": "95",
+   "tx_complemento_endereco": "JD STA MARIA",
+   "tx_situ_lote": "CANCELADO",
+   "cd_tipo_uso_imovel": "10",
+   "dc_tipo_uso_imovel": "Residencial",
+   "cd_tipo_terreno_imovel": 1,
+   "qt_area_terreno": 94,
+   "qt_area_construida": 50,
+   "cd_cib": null,
+   "tx_situacao_cib": null
+  },
+  {
+   "cd_identificador": 6492403,
+   "cd_identificador_original_lote": 10477803,
+   "cd_setor_fiscal": "116",
+   "cd_tipo_quadra": "F",
+   "tx_tipo_quadra": "FISCAL",
+   "cd_quadra_fiscal": "328",
+   "cd_subquadra_fiscal": null,
+   "cd_condominio": "00",
+   "cd_tipo_lote": "F",
+   "tx_tipo_lote": "FISCAL",
+   "cd_lote": "0045",
+   "cd_situacao": 1,
+   "cd_digito_sql": "3",
+   "cd_logradouro": "798142",
+   "nm_logradouro_completo": "R BENEDITO BIBIANO",
+   "cd_numero_porta": "84",
+   "tx_complemento_endereco": "LT 72 R REFIN MATARIPE VL ANTONIETA",
+   "tx_situ_lote": "ATIVO",
+   "cd_tipo_uso_imovel": "10",
+   "dc_tipo_uso_imovel": "Residencial",
+   "cd_tipo_terreno_imovel": 1,
+   "qt_area_terreno": 123,
+   "qt_area_construida": 100,
+   "cd_cib": "58A4EDA4",
+   "tx_situacao_cib": "Ativa"
+  }
+ ],
+ "ex geoportal:GEOSAMPA_zoneamento_geoambiental_apa_borore": [
+  {
+   "cd_identificador_zoneamento_geoambiental_apa_borore": 126,
+   "cd_identificador_original": null,
+   "nm_categoria_zoneamento": "ZQA",
+   "qt_area_metro": 2042.1069,
+   "qt_area_hectare": 0.2042107,
+   "qt_area_quilometro": 0.002042107,
+   "dt_atualizacao": "2026-02-23Z"
+  },
+  {
+   "cd_identificador_zoneamento_geoambiental_apa_borore": 131,
+   "cd_identificador_original": null,
+   "nm_categoria_zoneamento": "ZQA",
+   "qt_area_metro": 2421.6812,
+   "qt_area_hectare": 0.24216813,
+   "qt_area_quilometro": 0.0024216813,
+   "dt_atualizacao": "2026-02-23Z"
+  }
+ ],
+ "ex geoportal:GEOSAMPA_zoneamento_geoambiental_apa_cm": [
+  {
+   "cd_identificador_zoneamento_geoambiental_apa_cm": 3,
+   "qt_area_metro": 8002314.4313,
+   "tx_tipo_area": "ZUA",
+   "cd_usuario_atualizacao": "PRODAM",
+   "dt_atualizacao": "2021-08-10Z"
+  },
+  {
+   "cd_identificador_zoneamento_geoambiental_apa_cm": 5,
+   "qt_area_metro": 6904868.3329,
+   "tx_tipo_area": "ZUA",
+   "cd_usuario_atualizacao": "PRODAM",
+   "dt_atualizacao": "2021-08-10Z"
+  }
+ ],
+ "ex geoportal:arruamento_aprovado": [
+  {
+   "cd_identificador": 1,
+   "cd_numero_planta_arr": "ARR4813",
+   "cd_numero_processo": "3383/71",
+   "sg_fonte_original": "SEL"
+  },
+  {
+   "cd_identificador": 2,
+   "cd_numero_planta_arr": "ARR2005",
+   "cd_numero_processo": "101238597937",
+   "sg_fonte_original": "SEL"
+  }
+ ],
+ "ex geoportal:patrimonio_cultural_bairro_ambiental": [
+  {
+   "cd_identificador": 8001,
+   "nm_bairro": "JARDINS: AMÉRICA, EUROPA, PAULISTA E PAULISTANO",
+   "tx_resolucao_conpresp": "RES. 05/1991; RES. 07/2004 (DETALHAMENTO E COMPLEMENTAÇÃO)",
+   "tx_resolucao_condephaat": "RES. SC 02/1986; RES. COMPL. SCEC 37/2021",
+   "tx_link_resolucao": "https://www.prefeitura.sp.gov.br/cidade/upload/RE0591TombamentoExofficioTEOPDF_1417102444.pdf",
+   "sg_fonte_original": "DPH/SMC",
+   "dt_carga": "2026-10-11Z"
+  },
+  {
+   "cd_identificador": 8002,
+   "nm_bairro": "BAIRROS DO PACAEMBU E PERDIZES",
+   "tx_resolucao_conpresp": "RES. 42/1992; RES. 09/2015 (COMPLEMENTAÇÃO)",
+   "tx_resolucao_condephaat": "RES. SC 08/1991; RES. SC 12/2008 (COMPLEMENTAÇÃO)",
+   "tx_link_resolucao": "https://www.prefeitura.sp.gov.br/cidade/upload/RE4292TEOBairrosdoPacaembuePerdizesPDF_1417027279.pdf",
+   "sg_fonte_original": "DPH/SMC",
+   "dt_carga": "2026-10-11Z"
+  }
+ ],
+ "ex geoportal:zoneamento_classificacao_viaria": [
+  {
+   "cd_identificador": 4961521,
+   "tx_logradouro_valido": null,
+   "cd_logradouro_valido": null,
+   "tx_classificacao_viaria_eixo": "COLETORA",
+   "tx_observacao_eixo": null,
+   "sigla_fonte_original": "SMDU"
+  },
+  {
+   "cd_identificador": 4961522,
+   "tx_logradouro_valido": null,
+   "cd_logradouro_valido": null,
+   "tx_classificacao_viaria_eixo": "LOCAL",
+   "tx_observacao_eixo": null,
+   "sigla_fonte_original": "SMDU"
+  }
+ ],
+ "ex geoportal:controle_uso_via_publica_geoinfra": [
+  {
+   "cd_identificador_controle_uso_via_publica": 1,
+   "cd_identificador_original": 137517919,
+   "tx_tipo_obra": "EMERGENCIA",
+   "tx_status_obra": "ENCERRADA",
+   "nm_permissionaria": "Companhia de Saneamento Básico do Estado de São Paulo/MNED",
+   "dt_carga": "2026-01-31Z"
+  },
+  {
+   "cd_identificador_controle_uso_via_publica": 2,
+   "cd_identificador_original": 138033026,
+   "tx_tipo_obra": "EMERGENCIA",
+   "tx_status_obra": "INFORMADA",
+   "nm_permissionaria": "Companhia de Saneamento Básico do Estado de São Paulo/MCJL",
+   "dt_carga": "2026-01-31Z"
+  }
+ ],
+ "ex geoportal:distrito_municipal": [
+  {
+   "cd_identificador_distrito": 8583410,
+   "cd_identificador_subprefeitura": 21,
+   "cd_distrito_municipal": "67",
+   "nm_distrito_municipal": "RIO PEQUENO",
+   "sg_distrito_municipal": "RPE",
+   "tx_escala": "1:5000",
+   "sg_fonte_original": "GEOGSG",
+   "dt_criacao": "2004-01-01Z",
+   "dt_atualizacao": "2026-03-20T16:13:20.005Z",
+   "cd_usuario_atualizacao": null,
+   "cd_tipo_discrepancia": 199299399,
+   "qt_area_quilometro": 9.657,
+   "qt_area_metro": 9657007.38,
+   "cd_regiao_05": 4,
+   "nm_regiao_05": "Oeste",
+   "cd_regiao_08": 6,
+   "nm_regiao_08": "Oeste"
+  },
+  {
+   "cd_identificador_distrito": 8583465,
+   "cd_identificador_subprefeitura": 30,
+   "cd_distrito_municipal": "25",
+   "nm_distrito_municipal": "CIDADE TIRADENTES",
+   "sg_distrito_municipal": "CTI",
+   "tx_escala": "1:5000",
+   "sg_fonte_original": "GEOGSG",
+   "dt_criacao": "2004-01-01Z",
+   "dt_atualizacao": "2026-03-20T16:13:20.006Z",
+   "cd_usuario_atualizacao": null,
+   "cd_tipo_discrepancia": 199299399,
+   "qt_area_quilometro": 14.939,
+   "qt_area_metro": 14939046.96,
+   "cd_regiao_05": 2,
+   "nm_regiao_05": "Leste",
+   "cd_regiao_08": 3,
+   "nm_regiao_08": "Leste 2"
+  }
+ ],
+ "ex geoportal:perimetro_zoneamento_revogado_lei13885": [
+  {
+   "cd_identificador": 905,
+   "tx_zoneamento_perimetro": "ZM-1 / 0000",
+   "tx_observacao_perimetro": null,
+   "cd_zoneamento_perimetro": "ZM-1",
+   "ccd_prmr_pre": "0000",
+   "cd_subprefeitura_perimetro": "BT",
+   "cd_tipo_legislacao_zoneamento": "L",
+   "cd_numero_legislacao_zoneamento": 13885,
+   "an_legislacao_zoneamento": 2004
+  },
+  {
+   "cd_identificador": 618,
+   "tx_zoneamento_perimetro": "ZM-3a / 0003",
+   "tx_observacao_perimetro": null,
+   "cd_zoneamento_perimetro": "ZM-3a",
+   "ccd_prmr_pre": "0003",
+   "cd_subprefeitura_perimetro": "MG",
+   "cd_tipo_legislacao_zoneamento": "L",
+   "cd_numero_legislacao_zoneamento": 13885,
+   "an_legislacao_zoneamento": 2004
+  }
+ ],
+ "ex geoportal:perimetro_zona_lei_18081_24": [
+  {
+   "cd_identificador": 561883,
+   "tx_zoneamento_perimetro": null,
+   "tx_observacao_perimetro": null,
+   "cd_zoneamento_perimetro": "Praça/Canteiro",
+   "cd_tipo_legislacao_zoneamento": "L",
+   "cd_numero_legislacao_zoneamento": 18081,
+   "an_legislacao_zoneamento": 2024,
+   "dt_atualizacao": "2026-09-04T03:00:00Z",
+   "cd_usuario_atualizacao": "Prodam"
+  },
+  {
+   "cd_identificador": 571565,
+   "tx_zoneamento_perimetro": null,
+   "tx_observacao_perimetro": null,
+   "cd_zoneamento_perimetro": "Praça/Canteiro",
+   "cd_tipo_legislacao_zoneamento": "L",
+   "cd_numero_legislacao_zoneamento": 18081,
+   "an_legislacao_zoneamento": 2024,
+   "dt_atualizacao": "2026-09-04T03:00:00Z",
+   "cd_usuario_atualizacao": "Prodam"
+  }
+ ],
+ "ex geoportal:perimetro_zona_lei_18177_24": [
+  {
+   "cd_identificador": 561435,
+   "tx_zoneamento_perimetro": "Zona Especial de Preservação Ambiental",
+   "tx_observacao_perimetro": null,
+   "cd_zoneamento_perimetro": "ZEPAM",
+   "cd_tipo_legislacao_zoneamento": "L",
+   "cd_numero_legislacao_zoneamento": 18177,
+   "an_legislacao_zoneamento": 2024,
+   "dt_atualizacao": "2025-03-28T03:00:00Z",
+   "cd_usuario_atualizacao": null
+  },
+  {
+   "cd_identificador": 544908,
+   "tx_zoneamento_perimetro": "Zona Mista",
+   "tx_observacao_perimetro": null,
+   "cd_zoneamento_perimetro": "ZM",
+   "cd_tipo_legislacao_zoneamento": "L",
+   "cd_numero_legislacao_zoneamento": 18177,
+   "an_legislacao_zoneamento": 2024,
+   "dt_atualizacao": "2025-03-28T03:00:00Z",
+   "cd_usuario_atualizacao": null
+  }
+ ],
+ "ex geoportal:zoneamento_2016_map1": [
+  {
+   "cd_identificador": 13022,
+   "tx_zoneamento_perimetro": "PRAÇA/CANTEIRO",
+   "tx_observacao_perimetro": null,
+   "cd_zoneamento_perimetro": "PRAÇA/CANTEIRO",
+   "cd_prmr_pre": null,
+   "cd_subprefeitura_perimetro": null,
+   "cd_tipo_legislacao_zoneamento": "L",
+   "cd_numero_legislacao_zoneamento": 16402,
+   "an_legislacao_zoneamento": 2016
+  },
+  {
+   "cd_identificador": 13023,
+   "tx_zoneamento_perimetro": "PRAÇA/CANTEIRO",
+   "tx_observacao_perimetro": null,
+   "cd_zoneamento_perimetro": "PRAÇA/CANTEIRO",
+   "cd_prmr_pre": null,
+   "cd_subprefeitura_perimetro": null,
+   "cd_tipo_legislacao_zoneamento": "L",
+   "cd_numero_legislacao_zoneamento": 16402,
+   "an_legislacao_zoneamento": 2016
+  }
+ ],
+ "ex geoportal:patrimonio_cultural_selo_valor_cultural": [
+  {
+   "cd_identificador": 7000,
+   "nome_selo": "A FIDALGA",
+   "nm_endereco": "Rua Quintino Bocaiúva, 148",
+   "nm_bairro": "Sé",
+   "cd_setor_fiscal": "005",
+   "cd_quadra_fiscal": "014",
+   "cd_lote_fiscal": "0006",
+   "tx_lote_observacao": "0006",
+   "cd_condominio_fiscal": "00",
+   "dt_carga": "2026-04-30Z",
+   "sg_fonte_original": "DPH/SMC"
+  },
+  {
+   "cd_identificador": 7001,
+   "nome_selo": "ALMANARA",
+   "nm_endereco": "Rua Basílio da Gama, 70",
+   "nm_bairro": "República",
+   "cd_setor_fiscal": "006",
+   "cd_quadra_fiscal": "007",
+   "cd_lote_fiscal": "0000",
+   "tx_lote_observacao": "0186 a 0194; 0196 a 0242, 0985; 1000 a 1011",
+   "cd_condominio_fiscal": "04",
+   "dt_carga": "2026-04-30Z",
+   "sg_fonte_original": "DPH/SMC"
+  }
+ ],
+ "ex geoportal:sede_subprefeitura": [
+  {
+   "cd_identificador": 169001,
+   "cd_identificador_tema_equipamento": 8,
+   "nm_tema_equipamento": "SERVICO",
+   "cd_identificador_rede_equipamento": 0,
+   "nm_rede_equipamento": "SEM REDE",
+   "tx_rede_equipamento": "Sem descrição",
+   "cd_identificador_tipo_equipamento": 0,
+   "nm_tipo_equipamento": "SEM TIPO",
+   "tx_tipo_equipamento": "SEM TIPO",
+   "cd_identificador_classe_equipamento": 9,
+   "nm_classe_equipamento": "SEDE PREFEITURA REGIONAL",
+   "tx_classe_equipamento": "SEDE DE PREFEITURA REGIONAL",
+   "cd_identificador_esfera_administrativa_equipamento": 1,
+   "nm_esfera_administrativa_equipamento": "MUNICIPAL",
+   "tx_esfera_administrativa_equipamento": "ADMINISTRACAO MUNICIPAL",
+   "cd_equipamento": null,
+   "nm_equipamento": "PARELHEIROS/PA",
+   "tx_endereco_equipamento": "ES ECOTURÍSTICA DE PARELHEIROS, 5252",
+   "nm_bairro_equipamento": "JD. DOS ÁLAMOS",
+   "cd_cep_equipamento": "04883-025",
+   "tx_horario_funcionamento": "Seg a Sex (8h às 18h)",
+   "tx_numero_telefone": "5926-6500",
+   "cd_equipamento_base_origem": null
+  },
+  {
+   "cd_identificador": 169002,
+   "cd_identificador_tema_equipamento": 8,
+   "nm_tema_equipamento": "SERVICO",
+   "cd_identificador_rede_equipamento": 0,
+   "nm_rede_equipamento": "SEM REDE",
+   "tx_rede_equipamento": "Sem descrição",
+   "cd_identificador_tipo_equipamento": 0,
+   "nm_tipo_equipamento": "SEM TIPO",
+   "tx_tipo_equipamento": "SEM TIPO",
+   "cd_identificador_classe_equipamento": 9,
+   "nm_classe_equipamento": "SEDE PREFEITURA REGIONAL",
+   "tx_classe_equipamento": "SEDE DE PREFEITURA REGIONAL",
+   "cd_identificador_esfera_administrativa_equipamento": 1,
+   "nm_esfera_administrativa_equipamento": "MUNICIPAL",
+   "tx_esfera_administrativa_equipamento": "ADMINISTRACAO MUNICIPAL",
+   "cd_equipamento": null,
+   "nm_equipamento": "M'BOI MIRIM/MB",
+   "tx_endereco_equipamento": "AV GUARAPIRANGA, 1695",
+   "nm_bairro_equipamento": "PQ. ALVES DE LIMA",
+   "cd_cep_equipamento": "04902-015",
+   "tx_horario_funcionamento": "Seg a Sex (8h às 18h)",
+   "tx_numero_telefone": "3396-8400",
+   "cd_equipamento_base_origem": null
+  }
+ ],
+ "ex geoportal:subprefeitura": [
+  {
+   "cd_identificador_subprefeitura": 26,
+   "cd_subprefeitura": "16",
+   "nm_subprefeitura": "CIDADE ADEMAR",
+   "tx_escala": "1:5000",
+   "sg_fonte_original": "GEOGSG",
+   "dt_criacao": "2023-11-30Z",
+   "cd_tipo_discrepancia": 100200300,
+   "dt_atualizacao": "2026-03-20T16:14:01.317Z",
+   "cd_usuario_atualizacao": "",
+   "sg_subprefeitura": "AD",
+   "qt_area_quilometro": 31,
+   "qt_area_metro": 30810241.77,
+   "cd_regiao_05": 5,
+   "nm_regiao_05": "Sul",
+   "cd_regiao_08": 8,
+   "nm_regiao_08": "Sul 2"
+  },
+  {
+   "cd_identificador_subprefeitura": 24,
+   "cd_subprefeitura": "18",
+   "nm_subprefeitura": "M BOI MIRIM",
+   "tx_escala": "1:5000",
+   "sg_fonte_original": "GEOGSG",
+   "dt_criacao": "2023-11-30Z",
+   "cd_tipo_discrepancia": 100200300,
+   "dt_atualizacao": "2026-03-20T16:14:01.340Z",
+   "cd_usuario_atualizacao": "",
+   "sg_subprefeitura": "MB",
+   "qt_area_quilometro": 62,
+   "qt_area_metro": 62411386.53,
+   "cd_regiao_05": 5,
+   "nm_regiao_05": "Sul",
+   "cd_regiao_08": 8,
+   "nm_regiao_08": "Sul 2"
+  }
+ ],
+ "cql cd_setor_fiscal='120' AND cd_quadra_fiscal='194' AND cd_lote='0005'": [
+  {
+   "cd_identificador": 4231826,
+   "cd_identificador_original_lote": 9569186,
+   "cd_setor_fiscal": "120",
+   "cd_tipo_quadra": "F",
+   "tx_tipo_quadra": "FISCAL",
+   "cd_quadra_fiscal": "194",
+   "cd_subquadra_fiscal": null,
+   "cd_condominio": "00",
+   "cd_tipo_lote": "F",
+   "tx_tipo_lote": "FISCAL",
+   "cd_lote": "0005",
+   "cd_situacao": 1,
+   "cd_digito_sql": "6",
+   "cd_logradouro": "026611",
+   "nm_logradouro_completo": "R MARGARIDA ZINGG",
+   "cd_numero_porta": "126",
+   "tx_complemento_endereco": "CIDADE ADEMAR ANT N 130",
+   "tx_situ_lote": "ATIVO",
+   "cd_tipo_uso_imovel": "71",
+   "dc_tipo_uso_imovel": "Não residencial",
+   "cd_tipo_terreno_imovel": 1,
+   "qt_area_terreno": 280,
+   "qt_area_construida": 164,
+   "cd_cib": "24XQE402",
+   "tx_situacao_cib": "Ativa"
+  }
+ ],
+ "cql cd_setor_fiscal='120' AND cd_quadra_fiscal='194'": [
+  {
+   "cd_identificador": 4108779,
+   "cd_identificador_original_lote": 9567706,
+   "cd_setor_fiscal": "120",
+   "cd_tipo_quadra": "F",
+   "tx_tipo_quadra": "FISCAL",
+   "cd_quadra_fiscal": "194",
+   "cd_subquadra_fiscal": null,
+   "cd_condominio": "00",
+   "cd_tipo_lote": "F",
+   "tx_tipo_lote": "FISCAL",
+   "cd_lote": "0014",
+   "cd_situacao": 1,
+   "cd_digito_sql": "5",
+   "cd_logradouro": "168726",
+   "nm_logradouro_completo": "R RANULFO PRATA",
+   "cd_numero_porta": "115",
+   "tx_complemento_endereco": "ESQ JARDIM ITACOLOMI",
+   "tx_situ_lote": "ATIVO",
+   "cd_tipo_uso_imovel": "10",
+   "dc_tipo_uso_imovel": "Residencial",
+   "cd_tipo_terreno_imovel": 2,
+   "qt_area_terreno": 279,
+   "qt_area_construida": 167,
+   "cd_cib": "BPE0HXXV",
+   "tx_situacao_cib": "Ativa"
+  },
+  {
+   "cd_identificador": 4111038,
+   "cd_identificador_original_lote": 9572717,
+   "cd_setor_fiscal": "120",
+   "cd_tipo_quadra": "F",
+   "tx_tipo_quadra": "FISCAL",
+   "cd_quadra_fiscal": "194",
+   "cd_subquadra_fiscal": null,
+   "cd_condominio": "00",
+   "cd_tipo_lote": "F",
+   "tx_tipo_lote": "FISCAL",
+   "cd_lote": "0041",
+   "cd_situacao": 1,
+   "cd_digito_sql": "2",
+   "cd_logradouro": "076090",
+   "nm_logradouro_completo": "R FREDERICO ALBUQUERQUE",
+   "cd_numero_porta": "84",
+   "tx_complemento_endereco": null,
+   "tx_situ_lote": "ATIVO",
+   "cd_tipo_uso_imovel": "10",
+   "dc_tipo_uso_imovel": "Residencial",
+   "cd_tipo_terreno_imovel": 1,
+   "qt_area_terreno": 102,
+   "qt_area_construida": 107,
+   "cd_cib": "PJFJMCAA",
+   "tx_situacao_cib": "Ativa"
+  }
+ ]
+}
