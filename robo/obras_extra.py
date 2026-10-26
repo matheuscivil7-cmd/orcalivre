@@ -148,21 +148,23 @@ def confianca(obras):
         o["conf"] = max(5, min(100, s)); o["conf_motivos"] = [x for x in m if x]
 
 # ------------------------------------------------------------------ canais de compra da empresa
-RUIM = re.compile(r"(linkedin|facebook|instagram|youtube|twitter|x\.com|glassdoor|indeed|reclameaqui|jusbrasil|econodata|cnpj|casadosdados|empresas?aqui|solutudo|guiamais|wikipedia|google\.|bing\.|gov\.br|consultasocio|serasa|infojobs|vagas|catho|apontador|telelistas|escavador|b2b|cnae|speedio|brasilapi|receitaws|dnb\.com|zoominfo|bloomberg)", re.I)
+RUIM = re.compile(r"(linkedin|facebook|instagram|youtube|twitter|tiktok|kwai|pinterest|threads|reddit|x\.com|glassdoor|indeed|reclameaqui|jusbrasil|econodata|cnpj|casadosdados|empresas?aqui|solutudo|guiamais|wikipedia|google\.|bing\.|gov\.br|consultasocio|serasa|infojobs|vagas|catho|apontador|telelistas|escavador|b2b|cnae|speedio|brasilapi|receitaws|dnb\.com|zoominfo|bloomberg)", re.I)
 FORN = re.compile(r"(fornecedor|supplier|suprimento|compras|procurement|purchas|seja[-_ ]um|cadastro[-_ ]de[-_ ]forn|vendor|sourcing|parceir)", re.I)
 MAIL_OK = re.compile(r"^(compras?|suprimentos?|fornecedor(es)?|supplier|suppliers|procurement|purchas\w*|cadastro\w*|vendor\w*|sourcing|comercial|contato|sac|faleconosco|engenharia|obras|projetos?|expansao|investimentos?)[\w.\-]*@", re.I)
 
 class Bloqueado(Exception): pass
 
 def busca_web(q):
-    """Resultados (url, título) da versão HTML do DuckDuckGo (o Bing devolve captcha para robôs)."""
-    h, _ = get("https://html.duckduckgo.com/html/?" + urllib.parse.urlencode({"q": q, "kl": "br-pt"}), 900_000)
-    if "anomaly-modal" in h or "anomaly.js" in h: raise Bloqueado()
-    res = []
-    for m in re.finditer(r'class="result__a" href="([^"]+)"[^>]*>(.*?)</a>', h, re.S):
-        u = html.unescape(m.group(1)); mm = re.search(r"uddg=([^&]+)", u)
-        res.append((urllib.parse.unquote(mm.group(1)) if mm else u, re.sub(r"<[^>]+>", "", html.unescape(m.group(2)))))
-    return res[:10]
+    """Resultados (url, título) das versões HTML e lite do DuckDuckGo (o Bing devolve captcha para robôs)."""
+    for base in ("https://html.duckduckgo.com/html/?", "https://lite.duckduckgo.com/lite/?"):
+        h, _ = get(base + urllib.parse.urlencode({"q": q, "kl": "br-pt"}), 900_000)
+        if "anomaly-modal" in h or "anomaly.js" in h: continue
+        res = []
+        for m in re.finditer(r'<a[^>]+href="([^"]*uddg=[^"]+)"[^>]*>(.*?)</a>', h, re.S):
+            u = html.unescape(m.group(1)); mm = re.search(r"uddg=([^&]+)", u)
+            if mm: res.append((urllib.parse.unquote(mm.group(1)), re.sub(r"<[^>]+>", "", html.unescape(m.group(2)))))
+        return res[:10]
+    raise Bloqueado()
 
 def dominio(u):
     try: return urllib.parse.urlparse(u).hostname.replace("www.", "")
@@ -178,14 +180,12 @@ def emails_de(url, dom):
 def canais(nome):
     tok = [w.lower() for w in chave_empresa(nome).split() if len(w) > 3] or [w.lower() for w in chave_empresa(nome).split() if len(w) > 2]
     site = forn = ""
-    for q in (f"{nome} fornecedores", f"{nome} site oficial"):
-        for u, t in busca_web(q):
-            d = dominio(u)
-            if not d or RUIM.search(d) or not any(x in d.replace("-", "") for x in tok): continue
-            if not forn and FORN.search(u + " " + t): forn = u
-            if not site: site = "https://" + d
-        time.sleep(3)
-        if site: break
+    for u, t in busca_web(f"{nome} fornecedores"):
+        d = dominio(u)
+        if not d or RUIM.search(d) or not any(x in d.replace("-", "") for x in tok): continue
+        if not forn and FORN.search(u + " " + t): forn = u
+        if not site: site = "https://" + d
+    time.sleep(5)
     mails = []
     if forn: mails += emails_de(forn, dominio(forn))
     if site and len(mails) < 2:
@@ -217,8 +217,8 @@ def fornecedores(obras, arq, maximo=120, minutos=35):
             c = canais(n); cache[k] = c; ok += bool(achou(c))
         except Bloqueado:
             pausas += 1; print("  busca bloqueada temporariamente; pausa")
-            if pausas > 2: break
-            time.sleep(90)
+            if pausas > 3: break
+            time.sleep(150)
         except Exception as e: print("canais", n, e)
         if i % 20 == 19: print(f"  canais: {i + 1}/{len(fila)}, {ok} com canal")
     print(f"canais de compra: {ok} empresas com canal encontrado nesta rodada")
