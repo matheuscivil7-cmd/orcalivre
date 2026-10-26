@@ -12,11 +12,12 @@ import xml.etree.ElementTree as ET
 from datetime import datetime, timedelta, timezone
 
 DIR = "dados/obras"; os.makedirs(DIR, exist_ok=True)
-OUT, LOTES, CACHE = f"{DIR}/sp_alto.json", f"{DIR}/sp_lotes.json", f"{DIR}/sp_cache_noticias.json"
+OUT, LOTES, CACHE, ALV = f"{DIR}/sp_alto.json", f"{DIR}/sp_lotes.json", f"{DIR}/sp_cache_noticias.json", f"{DIR}/sp_alvaras.json"
 IA = "https://caexsyimhdwshrwcetok.supabase.co/functions/v1/obras-ia"
 W = "http://wfs.geosampa.prefeitura.sp.gov.br/geoserver/geoportal/wfs"
 PAG = "https://prefeitura.sp.gov.br/web/licenciamento/w/servicos/331597"
-UA = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36", "Accept-Language": "pt-BR,pt;q=0.9"}
+UA = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36", "Accept-Language": "pt-BR,pt;q=0.9",
+      "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,*/*;q=0.8"}
 HOJE = datetime.now(timezone.utc).date()
 MESES_ALVARA = int(os.environ.get("SP_MESES", "8"))
 
@@ -243,7 +244,12 @@ def main():
     itens, fontes = [], {}
     # alvarás + lotes
     try:
-        alv = alvaras(); fim = time.time() + 30 * 60; n_novos = 0
+        try:
+            alv = alvaras(); json.dump(alv, open(ALV, "w"), ensure_ascii=False, separators=(",", ":"))
+        except Exception as e:
+            if not os.path.exists(ALV): raise
+            print("planilhas indisponíveis agora (", str(e)[:80], ") — usando a última leitura"); alv = json.load(open(ALV))
+        fim = time.time() + 30 * 60; n_novos = 0
         for a in sorted(alv, key=lambda a: a["data"], reverse=True):
             info = None
             for s in a["sqls"][:2]:
