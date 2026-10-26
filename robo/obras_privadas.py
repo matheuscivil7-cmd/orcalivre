@@ -2,11 +2,16 @@
 Reúne, todo dia, obras privadas de grande porte a partir de fontes públicas:
   1. notícias de investimento (Google Notícias e Bing Notícias), estruturadas por IA (função obras-ia);
   2. financiamentos do BNDES (operações não automáticas, clientes privados, R$ 10 mi ou mais);
-  3. usinas de geração em construção ou com construção não iniciada (ANEEL/SIGA, 5 MW ou mais).
+  3. usinas de geração em construção ou com construção não iniciada (ANEEL/SIGA, 5 MW ou mais);
+  4. Diários Oficiais municipais (Querido Diário): alvarás, licenças de instalação e aprovações de projeto.
+Depois cruza as fontes, dá uma nota de confiabilidade e busca os canais de compra públicos de cada empresa
+(site, portal de fornecedores, e-mails corporativos) — ver robo/obras_extra.py.
 Saída: dados/obras/obras.json (lido pelo site) e dados/obras/cache_noticias.json (memória da IA)."""
 import json, os, re, sys, time, hashlib, html, unicodedata, urllib.request, urllib.parse
 import xml.etree.ElementTree as ET
 from datetime import datetime, timedelta, timezone
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import obras_extra as X
 
 DIR = "dados/obras"; os.makedirs(DIR, exist_ok=True)
 OUT, CACHE = f"{DIR}/obras.json", f"{DIR}/cache_noticias.json"
@@ -100,7 +105,7 @@ def chama_ia(lote):
         time.sleep(5 + 10 * t)
     return []
 
-def noticias(cache):
+def noticias(cache, extras=()):
     vistos = {}
     for q in CONSULTAS:
         for fn in (rss_bing, rss_google):
@@ -116,44 +121,54 @@ def noticias(cache):
     lim = (HOJE - timedelta(days=DIAS_NOTICIA)).isoformat()
     itens = [x for x in vistos.values() if x["data"] >= lim]
     novos = [x for x in itens if x["id"] not in cache][:MAX_NOVAS]
-    print(f"notícias: {len(itens)} no período, {len(novos)} novas para a IA")
-    for x in novos:
-        if not x["resumo"] or len(x["resumo"]) < 200: x["resumo"] = (x["resumo"] + " " + texto_artigo(x["link"])).strip()[:900]
+    dn = [x for x in extras if x["id"] not in cache][:200]
+    print(f"notícias: {len(itens)} no período, {len(novos)} novas para a IA; diários: {len(dn)} trechos novos")
+    try: X.enriquecer(novos)   # decodifica os links do Google Notícias e lê a matéria completa
+    except Exception as e: print("enriquecer", e)
+    novos += dn
     for i in range(0, len(novos), 20):
         lote = novos[i:i + 20]
-        res = chama_ia([{"id": x["id"], "titulo": x["titulo"], "resumo": x["resumo"], "data": x["data"]} for x in lote])
+        res = chama_ia([{"id": x["id"], "titulo": x["titulo"], "resumo": x["resumo"][:2800], "data": x["data"]} for x in lote])
         if res is None: print("limite diário da IA atingido"); break
         por = {str(r.get("id")): r for r in res if isinstance(r, dict)}
         for x in lote:
             r = por.get(x["id"])
             if r is None: continue
             cache[x["id"]] = {**r, "_t": x["titulo"], "_l": x["link"], "_v": x["veiculo"], "_d": x["data"]}
+            if x.get("cidade"): cache[x["id"]].update(_cid=x["cidade"], _uf=x.get("uf"))
         print(f"  IA lote {i // 20 + 1}: {len(por)} respostas")
     # monta obras a partir do cache (apenas relevantes e no período)
     obras = {}
     for k, r in cache.items():
         if not r.get("relevante") or r.get("_d", "") < lim: continue
-        uf = (r.get("uf") or "").upper()
+        dia = k.startswith("D")
+        if dia and not r.get("cidade"): r["cidade"] = r.get("_cid")
+        uf = (r.get("uf") or (r.get("_uf") if dia else "") or "").upper()
         if uf and uf not in UFS: continue
         if SEMEMP.search(norm(r.get("empresa") or "")): r["empresa"] = None
         emp = norm(r.get("empresa") or "")
-        if emp: chave = hid(emp, uf, round((r.get("valor") or 0) / 1e7))
+        if dia: chave = "D" + hid(emp or k, uf, norm(r.get("cidade"))[:20], round((r.get("valor") or 0) / 1e7))
+        elif emp: chave = hid(emp, uf, round((r.get("valor") or 0) / 1e7))
         elif r.get("valor"): chave = hid("", uf, r.get("segmento"), round(r["valor"] / 1e8))
         else: chave = hid(k)
         fonte = {"t": r.get("_t"), "url": r.get("_l"), "veiculo": r.get("_v"), "data": r.get("_d")}
         o = obras.get(chave)
         if not o:
-            o = obras[chave] = {"id": "N" + chave, "origem": "noticia", "obra": re.sub(r"^((EMPRESA )?N[AÃ]O (INFORMAD[AO]|IDENTIFICAD[AO]|DIVULGAD[AO])|EMPRESA( PRIVADA)?|MULTINACIONAL( \w+)?)\s*/\s*", "", (r.get("obra") or r.get("_t") or "").upper())[:160], "empresa": r.get("empresa"),
+            o = obras[chave] = {"id": ("" if dia else "N") + chave, "origem": "diario" if dia else "noticia", "obra": re.sub(r"^((EMPRESA )?N[AÃ]O (INFORMAD[AO]|IDENTIFICAD[AO]|DIVULGAD[AO])|EMPRESA( PRIVADA)?|MULTINACIONAL( \w+)?)\s*/\s*", "", (r.get("obra") or r.get("_t") or "").upper())[:160], "empresa": r.get("empresa"),
                                 "cidade": r.get("cidade"), "uf": uf or None, "segmento": r.get("segmento") or "OUTROS", "subtipo": r.get("subtipo"), "tipo": r.get("tipo"),
                                 "estagio": r.get("estagio") or "ANÚNCIO", "valor": r.get("valor"), "area_m2": r.get("area_m2"), "unidades": r.get("unidades"),
                                 "empregos": r.get("empregos"), "inicio": r.get("inicio"), "termino": r.get("termino"), "detalhes": r.get("detalhes"),
+                                "construtora": r.get("construtora"), "projetista": r.get("projetista"), "area_terreno_m2": r.get("area_terreno_m2"),
+                                "pessoas": [p for p in (r.get("pessoas") or []) if isinstance(p, dict) and p.get("nome")][:6],
                                 "atualizado": r.get("_d"), "criado": r.get("_d"), "fontes": []}
         else:
-            for c in ("cidade", "uf", "valor", "area_m2", "unidades", "empregos", "inicio", "termino", "subtipo", "tipo"):
+            for c in ("cidade", "uf", "valor", "area_m2", "unidades", "empregos", "inicio", "termino", "subtipo", "tipo", "construtora", "projetista", "area_terreno_m2"):
                 if not o.get(c) and r.get(c): o[c] = r.get(c)
             if r.get("_d", "") > (o["atualizado"] or ""):
                 o["atualizado"] = r["_d"]; o["estagio"] = r.get("estagio") or o["estagio"]; o["detalhes"] = r.get("detalhes") or o["detalhes"]
             o["criado"] = min(o["criado"] or r["_d"], r["_d"])
+            for p in (r.get("pessoas") or []):
+                if isinstance(p, dict) and p.get("nome") and len(o["pessoas"]) < 6 and all(norm(q["nome"]) != norm(p["nome"]) for q in o["pessoas"]): o["pessoas"].append(p)
         if fonte["url"] and all(f["url"] != fonte["url"] for f in o["fontes"]): o["fontes"].append(fonte)
     for o in obras.values(): o["fontes"] = sorted(o["fontes"], key=lambda f: f["data"] or "", reverse=True)[:8]
     return list(obras.values())
@@ -252,14 +267,21 @@ def main():
             for o in json.load(open(OUT)).get("obras", []): anterior[o["id"]] = o
         except Exception: pass
     obras, fontes_ok = [], {}
-    for nome, fn in (("noticias", lambda: noticias(cache)), ("bndes", bndes), ("aneel", aneel)):
+    try: dia = X.diarios()
+    except Exception as e: print("diários", e); dia = []
+    for nome, fn in (("noticias", lambda: noticias(cache, dia)), ("bndes", bndes), ("aneel", aneel)):
         try:
             lst = fn(); obras += lst; fontes_ok[nome] = len(lst)
         except Exception as e:
             print("FALHA", nome, e)
-            antes = [o for o in anterior.values() if o.get("origem") == nome[:-1] or o.get("origem") == nome]
+            antes = [o for o in anterior.values() if o.get("origem") in ((nome[:-1], "diario") if nome == "noticias" else (nome,))]
             obras += antes; fontes_ok[nome] = f"mantido ({len(antes)})"
     json.dump(cache, open(CACHE, "w"), ensure_ascii=False, separators=(",", ":"))
+    fontes_ok["diarios"] = sum(1 for o in obras if o.get("origem") == "diario")
+    for etapa, f in (("cruzamento", lambda: X.cruzar(obras)), ("confiabilidade", lambda: X.confianca(obras)),
+                     ("canais de compra", lambda: X.fornecedores(obras, f"{DIR}/empresas.json", int(os.environ.get("MAX_EMPRESAS", "260"))))):
+        try: f()
+        except Exception as e: print("FALHA", etapa, e)
     for o in obras:
         o["codigo"] = "OL" + hashlib.sha1(o["id"].encode()).hexdigest()[:6].upper()
         o["novo"] = o["id"] not in anterior
