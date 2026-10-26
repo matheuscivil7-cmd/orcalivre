@@ -1,27 +1,30 @@
-import urllib.request, urllib.parse, json, sys, os, re, html, time
+import urllib.request, json, sys, os, re, io, collections
 OUT = sys.argv[1] if len(sys.argv) > 1 else '/tmp/diag'; os.makedirs(OUT, exist_ok=True)
-UA = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/130.0", "Accept-Language": "pt-BR"}
+import subprocess; subprocess.run([sys.executable, "-m", "pip", "install", "-q", "openpyxl"])
+import openpyxl
+UA = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/130.0"}
 def get(u):
-    with urllib.request.urlopen(urllib.request.Request(u, headers=UA), timeout=60) as r: return r.read().decode("utf8", "replace")
-res = {}
-qs = ['"alvará de aprovação"', '"alvará de execução"', '"aprovação e execução"', '"edificação nova"', '"residência unifamiliar"', '"projeto modificativo"', '"reforma" "alvará"', 'deferido "alvará de aprovação"']
-for base in ["https://api.queridodiario.ok.org.br/gazettes", "https://queridodiario.ok.org.br/api/gazettes"]:
-    for q in qs:
-        p = urllib.parse.urlencode({"territory_ids": "3550308", "querystring": q, "published_since": "2026-09-20", "size": 5, "excerpt_size": 1200, "number_of_excerpts": 3, "sort_by": "descending_date"})
-        try:
-            j = json.loads(get(base + "?" + p))
-            res[base[:30] + " " + q] = {"total": j.get("total_gazettes"), "g": [{"date": g.get("date"), "url": g.get("url"), "ex": [re.sub(r"\s+", " ", html.unescape(e)) for e in g.get("excerpts", [])]} for g in j.get("gazettes", [])[:3]]}
-        except Exception as e:
-            res[base[:30] + " " + q] = str(e)
-        time.sleep(1)
-json.dump(res, open(OUT + "/sp.json", "w"), ensure_ascii=False, indent=1)
-# notícias
-import xml.etree.ElementTree as ET
-nq = ['escritório de arquitetura residência alto padrão São Paulo', 'casa Jardim Europa arquitetura projeto', 'edifício alto padrão Itaim lançamento VGV', 'empreendimento de luxo Vila Nova Conceição lançamento', 'loja conceito São Paulo projeto arquitetura obra', 'novo prédio corporativo São Paulo Faria Lima construção', 'residência Cidade Jardim projeto arquiteto', 'hotel boutique São Paulo obras']
-out = {}
-for q in nq:
+    with urllib.request.urlopen(urllib.request.Request(u, headers=UA), timeout=120) as r: return r.read(), r.geturl(), r.headers.get("content-type")
+rep = {}
+pg, _, _ = get("https://prefeitura.sp.gov.br/web/licenciamento/w/servicos/331597")
+links = re.findall(r'href="([^"]+(?:xlsx|-xlsx)[^"]*)"', pg.decode("utf8", "replace"))
+rep["links_2026"] = [l for l in links if "2026" in l]
+for u in ["https://prefeitura.sp.gov.br/documents/d/licenciamento/agosto_2026_ad-xlsx"]:
     try:
-        b = get("https://news.google.com/rss/search?" + urllib.parse.urlencode({"q": q + " when:90d", "hl": "pt-BR", "gl": "BR", "ceid": "BR:pt-419"}))
-        out[q] = [(it.findtext("title"), it.findtext("pubDate")) for it in ET.fromstring(b).iter("item")][:12]
-    except Exception as e: out[q] = str(e)
-json.dump(out, open(OUT + "/noticias.json", "w"), ensure_ascii=False, indent=1)
+        b, fu, ct = get(u); rep["final"] = fu; rep["ct"] = ct; rep["bytes"] = len(b)
+        wb = openpyxl.load_workbook(io.BytesIO(b), read_only=True)
+        for ws in wb.worksheets[:3]:
+            rows = list(ws.iter_rows(values_only=True))
+            rep[ws.title] = {"n": len(rows), "head": [list(map(str, r)) for r in rows[:8]]}
+            # find header row
+            hi = next((i for i, r in enumerate(rows[:15]) if sum(1 for c in r if c) >= 5), 0)
+            hdr = [str(c) for c in rows[hi]]
+            rep[ws.title]["hdr"] = hdr
+            cnt = {}
+            for ci, h in enumerate(hdr):
+                vals = collections.Counter(str(r[ci])[:60] for r in rows[hi + 1:] if ci < len(r))
+                if len(vals) < 60: cnt[h] = vals.most_common(25)
+                else: cnt[h] = ["(muitos) ex:"] + [k for k, _ in vals.most_common(5)]
+            rep[ws.title]["valores"] = cnt
+    except Exception as e: rep["erro"] = str(e)
+json.dump(rep, open(OUT + "/alvaras.json", "w"), ensure_ascii=False, indent=1, default=str)
