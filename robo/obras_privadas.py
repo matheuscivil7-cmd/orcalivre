@@ -143,7 +143,7 @@ def noticias(cache):
         fonte = {"t": r.get("_t"), "url": r.get("_l"), "veiculo": r.get("_v"), "data": r.get("_d")}
         o = obras.get(chave)
         if not o:
-            o = obras[chave] = {"id": "N" + chave, "origem": "noticia", "obra": re.sub(r"^(EMPRESA )?N[AÃ]O (INFORMAD[AO]|IDENTIFICAD[AO]|DIVULGAD[AO])\s*/\s*", "", (r.get("obra") or r.get("_t") or "").upper())[:160], "empresa": r.get("empresa"),
+            o = obras[chave] = {"id": "N" + chave, "origem": "noticia", "obra": re.sub(r"^((EMPRESA )?N[AÃ]O (INFORMAD[AO]|IDENTIFICAD[AO]|DIVULGAD[AO])|EMPRESA( PRIVADA)?|MULTINACIONAL( \w+)?)\s*/\s*", "", (r.get("obra") or r.get("_t") or "").upper())[:160], "empresa": r.get("empresa"),
                                 "cidade": r.get("cidade"), "uf": uf or None, "segmento": r.get("segmento") or "OUTROS", "subtipo": r.get("subtipo"), "tipo": r.get("tipo"),
                                 "estagio": r.get("estagio") or "ANÚNCIO", "valor": r.get("valor"), "area_m2": r.get("area_m2"), "unidades": r.get("unidades"),
                                 "empregos": r.get("empregos"), "inicio": r.get("inicio"), "termino": r.get("termino"), "detalhes": r.get("detalhes"),
@@ -189,6 +189,7 @@ def bndes():
             desc = re.sub(r"\s+", " ", r.get("descricao_do_projeto") or "").strip()
             if v < 10e6 or "ADMINISTRACAO PUBLICA" in nat or "GOVERNO" in nat or not OBRA_RE.search(norm(desc)): continue
             cid = (r.get("municipio") or "").title() or None; uf = (r.get("uf") or "").strip().upper() or None
+            if cid and "SEM MUNIC" in norm(cid): cid = None
             if uf not in UFS: uf = None
             tipo = "AMPLIAÇÃO" if re.search(r"AMPLIA|EXPANS", norm(desc)) else "MODERNIZAÇÃO" if "MODERNIZ" in norm(desc) else "IMPLANTAÇÃO"
             cli = re.sub(r"\s+", " ", r.get("cliente") or "").strip()
