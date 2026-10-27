@@ -294,11 +294,12 @@ def responsaveis(itens, rtc, minutos=12):
     for o in itens:
         if o["origem"] != "alvara" or not (o.get("alto") or o.get("nobre")): continue
         p = o.get("processo"); c = rtc.get(p)
-        if c and (c.get("rts") or (HOJE - datetime.fromisoformat(c["t"]).date()).days < 20): continue
+        if c and c.get("v") == sp_rt.VERSAO and (c.get("rts") or (HOJE - datetime.fromisoformat(c["t"]).date()).days < 20): continue
+        if c and c.get("v") != sp_rt.VERSAO and not c.get("url") and (HOJE - datetime.fromisoformat(c["t"]).date()).days < 20: continue
         if time.time() > fim: break
         try: u, b = sp_rt.baixa(p)
         except Exception as e: print("RT: Prefeitura recusou agora (", str(e)[:60], ")"); break
-        lidos += 1; reg = {"t": HOJE.isoformat()}
+        lidos += 1; reg = {"t": HOJE.isoformat(), "v": sp_rt.VERSAO}
         if b:
             pdfs += 1; reg["url"] = u
             try: reg["rts"] = sp_rt.le_rts(b)
@@ -310,9 +311,11 @@ def responsaveis(itens, rtc, minutos=12):
         if not (c and c.get("rts")): continue
         n += 1; o["rts"] = c["rts"]
         o["fontes"].append({"t": "Alvará publicado (PDF oficial) — responsáveis técnicos", "url": c["url"], "veiculo": "Prefeitura de SP (SMUL)", "data": o.get("atualizado")})
-        proj = {norm(r["nome"]) for r in c["rts"] if r["vinculo"] == "projeto"}
+        proj = {norm(r["nome"]) for r in c["rts"] if r["vinculo"] in ("projeto", "ambos")}
         exe = [r for r in c["rts"] if r["vinculo"] == "execucao" and norm(r["nome"]) not in proj]
-        if exe: o["execucao_outro"] = True
+        if exe and proj: o["execucao_outro"] = True
+        pj = [r for r in c["rts"] if r["vinculo"] in ("projeto", "ambos") and r.get("empresa") and not CONSTRUTORA.search(norm(r["nome"]).replace("LTDA", ""))]
+        if pj and not o.get("arquitetura"): o["arquitetura"] = canon_arq(re.sub(r"\s+(LTDA|EIRELI|ME|EPP|S/?A)\.?$", "", pj[0]["nome"], flags=re.I).title())
         emp = [r for r in exe if CONSTRUTORA.search(norm(r["nome"])) and "ARQUIT" not in norm(r["nome"])]
         if emp and not o.get("construtora"): o["construtora"] = emp[0]["nome"]
     print(f"responsáveis técnicos: {lidos} alvarás consultados hoje, {pdfs} PDFs publicados, {n} obras com responsável identificado")
