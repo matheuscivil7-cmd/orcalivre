@@ -38,6 +38,28 @@ def norm(s): return re.sub(r"[^A-Z0-9 ]+", " ", unicodedata.normalize("NFD", str
 def hid(*p): return hashlib.sha1("|".join(map(str, p)).encode()).hexdigest()[:12]
 def propria(nome): n = norm(nome); return bool(n) and any(re.search(r"\b" + p + r"\b", n) for p in PROPRIAS)
 
+# ------------------------------------------------------------------ escritórios de arquitetura de alto padrão
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from sp_arquitetos import ARQUITETOS, HISTORICOS
+ARQ_EST = f"{DIR}/sp_arquitetos_estado.json"
+ARQ_POR_DIA = int(os.environ.get("SP_ARQ_DIA", "30"))
+SEG = {n: s for n, s, _ in ARQUITETOS}
+_VAZIAS = r"\b(ARQUITETURA|ARQUITETURAS|ARQUITETOS|ARQUITETO|ARQUITETA|ASSOCIADOS|STUDIO|ESTUDIO|ATELIER|ESCRITORIO|DESIGN|DECORACAO|DE|E|DO|DA|AND)\b"
+def chave_arq(s): return " ".join(re.sub(_VAZIAS, " ", re.sub(r"\bSAO PAULO\b|\bBRASIL\b", " ", norm(s))).split())
+CANON = {}
+for _n, _s, _al in ARQUITETOS:
+    for _a in [_n] + _al:
+        if chave_arq(_a): CANON[chave_arq(_a)] = _n
+def canon_arq(s):
+    """Nome padronizado do escritório; None para nomes históricos (restauro/patrimônio)."""
+    s = str(s or "").strip()
+    k = chave_arq(s)
+    if not k or any(h in norm(s) for h in HISTORICOS): return None
+    if k in CANON: return CANON[k]
+    for ck, nome in CANON.items():
+        if len(ck) >= 5 and (" " + ck + " ") in (" " + k + " "): return nome
+    return s
+
 # ------------------------------------------------------------------ 1. alvarás (planilhas mensais)
 MESES = ["janeiro", "fevereiro", "marco", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"]
 def planilhas():
@@ -163,8 +185,8 @@ CONSULTAS = [
     "hotel boutique São Paulo construção", "clínica alto padrão São Paulo projeto arquitetura", "escritório de arquitetura assina projeto São Paulo residencial",
     "Cidade Jardim residência projeto", "Alto de Pinheiros casa projeto arquitetura", "Higienópolis edifício lançamento arquitetura",
 ]
-def rss(q):
-    u = "https://news.google.com/rss/search?" + urllib.parse.urlencode({"q": q + " when:120d", "hl": "pt-BR", "gl": "BR", "ceid": "BR:pt-419"})
+def rss(q, janela="120d"):
+    u = "https://news.google.com/rss/search?" + urllib.parse.urlencode({"q": q + " when:" + janela, "hl": "pt-BR", "gl": "BR", "ceid": "BR:pt-419"})
     out = []
     for it in ET.fromstring(get(u)).iter("item"):
         t = html.unescape(it.findtext("title") or ""); src = it.findtext("source") or ""
@@ -187,8 +209,32 @@ def chama_ia(lote_):
         time.sleep(5 + 10 * t)
     return []
 
-def noticias(cache):
-    vistos = {}
+# notícias que tratam de obra pronta, mostra ou produto — não chegam à IA
+FORA = re.compile(r"casacor|casa cor|mostra|poltrona|cadeira|lumin[aá]ria|cole[cç][aã]o|mobili[aá]rio|sal[aã]o de mil|design week|bienal|"
+                  r"pr[eê]mio|entrevista|podcast|livro|exposi[cç][aã]o|morre|falece|homenage|tour pela|conhe[cç]a a casa|inaugur", re.I)
+
+def consultas_arq(estado):
+    """Rodízio diário: cada escritório é consultado a cada poucos dias."""
+    nomes = [n for n, _, _ in ARQUITETOS] + sorted(estado.get("descobertos", {}))
+    pos = estado.get("pos", 0) % len(nomes)
+    estado["pos"] = pos + ARQ_POR_DIA
+    return (nomes + nomes)[pos:pos + min(ARQ_POR_DIA, len(nomes))]
+
+def noticias(cache, estado):
+    vistos, de_arq = {}, []
+    midia = estado.setdefault("midia", {})
+    for nome in consultas_arq(estado):
+        q = '"%s" (projeto OR obra OR residência OR edifício OR lançamento OR casa OR reforma)' % nome
+        try:
+            itens = rss(q, "365d")
+            midia[nome] = {"n": len(itens), "ultima": max((x["data"] for x in itens), default=None), "verificado": HOJE.isoformat()}
+            for it in sorted(itens, key=lambda x: x["data"], reverse=True)[:8]:
+                if FORA.search(it["titulo"]): continue
+                k = hid(norm(it["titulo"])[:90])
+                if k not in vistos: it["id"] = k; vistos[k] = it; de_arq.append(k)
+        except Exception as e: print("rss arq", nome, e)
+        time.sleep(0.7)
+    print("consultas por escritório:", len(de_arq), "notícias candidatas")
     for q in CONSULTAS:
         try:
             for it in rss(q):
@@ -196,7 +242,8 @@ def noticias(cache):
                 if k not in vistos: it["id"] = k; vistos[k] = it
         except Exception as e: print("rss", q, e)
         time.sleep(0.7)
-    novos = [x for x in vistos.values() if x["id"] not in cache][:160]
+    prio = set(de_arq)
+    novos = sorted([x for x in vistos.values() if x["id"] not in cache], key=lambda x: x["id"] not in prio)[:260]
     print(f"notícias SP: {len(vistos)} encontradas, {len(novos)} novas para a IA")
     try:
         sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -207,13 +254,17 @@ def noticias(cache):
         lt = novos[i:i + 15]
         res = chama_ia([{"id": x["id"], "titulo": x["titulo"], "resumo": (x.get("resumo") or "")[:2800], "data": x["data"]} for x in lt])
         if res is None: print("limite diário da IA"); break
+        time.sleep(4)
         por = {str(r.get("id")): r for r in res if isinstance(r, dict)}
         for x in lt:
             if x["id"] in por: cache[x["id"]] = {**por[x["id"]], "_t": x["titulo"], "_l": x["link"], "_v": x["veiculo"], "_d": x["data"]}
     lim = (HOJE - timedelta(days=240)).isoformat()
     obras = {}
+    desc = estado.setdefault("descobertos", {})
     for k, r in cache.items():
         if not r.get("relevante") or r.get("_d", "") < lim or r.get("estagio") == "INAUGURADA": continue
+        arq = canon_arq(r.get("arquitetura")); r["arquitetura"] = arq
+        if arq and arq not in SEG and r.get("alto_padrao", True) and len(desc) < 150: desc.setdefault(arq, r.get("_d") or HOJE.isoformat())
         nome = (r.get("obra") or r.get("_t") or "").upper()[:160]
         bairro = (r.get("bairro") or "").strip().upper() or None; r["bairro"] = bairro
         dono = norm(r.get("incorporadora") or "").split()[:1]
@@ -229,7 +280,7 @@ def noticias(cache):
                         "estagio": r.get("estagio") or "ANÚNCIO", "arquitetura": r.get("arquitetura"), "construtora": r.get("construtora"),
                         "incorporadora": r.get("incorporadora"), "area_m2": r.get("area_m2"), "unidades": r.get("unidades"), "valor": r.get("valor"),
                         "detalhes": r.get("detalhes"), "pessoas": [p for p in (r.get("pessoas") or []) if isinstance(p, dict) and p.get("nome")][:5],
-                        "atualizado": r.get("_d"), "fontes": [f], "alto": bool(r.get("alto_padrao", True))}
+                        "atualizado": r.get("_d"), "fontes": [f], "alto": bool(r.get("alto_padrao", True)) or arq in SEG}
     return list(obras.values())
 
 # ------------------------------------------------------------------ principal
@@ -237,6 +288,7 @@ def main():
     lotes = json.load(open(LOTES)) if os.path.exists(LOTES) else {}
     lotes = {k: v for k, v in lotes.items() if not (v and RUIDO.search(str(v.get("zona") or "")))}
     cache = json.load(open(CACHE)) if os.path.exists(CACHE) else {}
+    estado = json.load(open(ARQ_EST)) if os.path.exists(ARQ_EST) else {}
     anterior = {}
     if os.path.exists(OUT):
         try: anterior = {o["id"]: o for o in json.load(open(OUT)).get("itens", [])}
@@ -285,11 +337,17 @@ def main():
     fontes["licencas"] = sum(1 for o in itens if o["origem"] == "licenca")
     # notícias
     try:
-        nts = noticias(cache); itens += nts; fontes["noticias"] = len(nts)
+        nts = noticias(cache, estado); itens += nts; fontes["noticias"] = len(nts)
     except Exception as e:
         print("FALHA notícias", e); antes = [o for o in anterior.values() if o.get("origem") == "noticia"]; itens += antes
     json.dump(cache, open(CACHE, "w"), ensure_ascii=False, separators=(",", ":"))
+    json.dump(estado, open(ARQ_EST, "w"), ensure_ascii=False, separators=(",", ":"))
+    midia = estado.get("midia", {})
+    arquitetos = [{"nome": n, "seg": s, "origem": "lista", **midia.get(n, {})} for n, s, _ in ARQUITETOS]
+    arquitetos += [{"nome": n, "seg": None, "origem": "descoberto", "desde": d, **midia.get(n, {})} for n, d in sorted(estado.get("descobertos", {}).items())]
+    fontes["escritorios"] = len(arquitetos)
     for o in itens:
+        if o.get("arquitetura"): o["arquitetura"] = canon_arq(o["arquitetura"])
         o["cidade"], o["uf"] = "São Paulo", "SP"
         o["empresa"] = o.get("incorporadora") or o.get("arquitetura")
         o["segmento"] = o.get("uso") or "OUTROS"
@@ -301,7 +359,7 @@ def main():
         for k in [k for k, v in o.items() if v in (None, "", [])]: del o[k]
     itens.sort(key=lambda o: o.get("atualizado") or "", reverse=True)
     json.dump({"gerado": datetime.now(timezone.utc).isoformat(timespec="minutes"), "fontes": fontes, "total": len(itens),
-               "nobres": sorted(NOBRES), "proprias": PROPRIAS, "itens": itens}, open(OUT, "w"), ensure_ascii=False, separators=(",", ":"))
+               "nobres": sorted(NOBRES), "proprias": PROPRIAS, "arquitetos": arquitetos, "itens": itens}, open(OUT, "w"), ensure_ascii=False, separators=(",", ":"))
     print("total:", len(itens), fontes, "alto padrão:", sum(1 for o in itens if o.get("alto")))
 
 if __name__ == "__main__":
