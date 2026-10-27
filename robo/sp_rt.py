@@ -46,7 +46,8 @@ def segmentos(pdf):
             if seg.strip(): out.append((pg, top, x0, seg.strip()))
     return out
 
-ROTULOS = re.compile(r"^(NOME|N[ÚU]MERO DE CONSELHO|CCM|V[ÍI]NCULO|CPF|NOME/RAZ)", re.I)
+ROTULOS = re.compile(r"^(NOME|N[ÚU]MERO DE CONSELHO|CCM|V[ÍI]NCULO|CPF|CNPJ)", re.I)
+VERSAO = 2
 
 def _abaixo(pdf, S, i):
     """Valor logo abaixo do rótulo S[i], recortado até a coluna do próximo rótulo da mesma linha (até 2 linhas)."""
@@ -74,6 +75,12 @@ def _abaixo(pdf, S, i):
         partes.append(s); ant = tp
     return " ".join(" ".join(partes).split()) or None
 
+def tipo_vinculo(v):
+    v = v.lower()
+    if "propriet" in v or not re.search(r"respons|autor|dirigente", v): return None
+    pj = bool(re.search(r"projeto|autor", v)); ex = bool(re.search(r"execu|obra|dirigente", v))
+    return "ambos" if pj and ex else "projeto" if pj else "execucao" if ex else None
+
 def le_rts(pdf_bytes):
     import pdfplumber
     with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf:
@@ -81,19 +88,25 @@ def le_rts(pdf_bytes):
         rts = []
         for i, (_, _, _, txt) in enumerate(S):
             if txt.upper().replace("Í", "I") != "VINCULO": continue
-            v = _abaixo(pdf, S, i) or ""
-            if not re.search(r"Respons[aá]vel T[eé]cnico", v, re.I): continue
-            tipo = "execucao" if re.search(r"execu", v, re.I) else "projeto" if re.search(r"projeto", v, re.I) else v.lower()
+            tipo = tipo_vinculo(_abaixo(pdf, S, i) or "")
+            if not tipo: continue
             rt = {"vinculo": tipo}
-            for j in range(i + 2, min(i + 30, len(S))):
-                t = S[j][3].upper()
-                if t.replace("Í", "I") == "VINCULO": break
-                if t == "NOME" and "nome" not in rt: rt["nome"] = _abaixo(pdf, S, j)
-                elif re.match(r"N[ÚU]MERO DE CONSELHO", t) and "registro" not in rt: rt["registro"] = _abaixo(pdf, S, j)
+            for j in range(i + 2, min(i + 40, len(S))):
+                t = S[j][3].upper().replace("Í", "I").replace("Ú", "U").replace("Ã", "A")
+                if t == "VINCULO": break
+                if t in ("NOME", "NOME/RAZAO SOCIAL") and "nome" not in rt: rt["nome"] = _abaixo(pdf, S, j)
+                elif t.startswith("NUMERO DE CONSELHO DA EMPRESA"): rt["registro"] = _abaixo(pdf, S, j); rt["empresa"] = True
+                elif t.startswith("NOME DO REPRESENTANTE"): rt["representante"] = _abaixo(pdf, S, j)
+                elif t.startswith("NUMERO DE CONSELHO DO REPRESENTANTE"):
+                    v = _abaixo(pdf, S, j)
+                    if rt.get("empresa"): rt["registro_rep"] = v
+                    elif "registro" not in rt: rt["registro"] = v
             if rt.get("nome"):
-                reg = (rt.get("registro") or "").strip()
-                rt["conselho"] = "CAU" if re.match(r"^[A-Z]\d{3,}", reg) else ("CREA" if reg else None)
-                rt["empresa"] = bool(re.search(r"\b(LTDA|S\.?A\.?|EIRELI|ENGENHARIA|CONSTRU\w*|INCORPORA\w*|EMPREENDIMENTOS|ARQUITETURA|ARQUITETOS|ME|EPP)\b", rt["nome"].upper()))
+                reg = re.sub(r"\s+", "", rt.get("registro") or "")
+                if reg: rt["registro"] = reg
+                rt["conselho"] = "CAU" if re.match(r"^[A-Z]{1,3}\d{2,}", reg) else ("CREA" if reg else None)
+                if not rt.get("empresa"):
+                    rt["empresa"] = bool(re.search(r"\b(LTDA|S\.?A\.?|EIRELI|ENGENHARIA|CONSTRU\w*|INCORPORA\w*|EMPREENDIMENTOS|ARQUITETURA|ARQUITETOS|ME|EPP)\b", rt["nome"].upper()))
                 rts.append({k: v for k, v in rt.items() if v not in (None, "")})
     vistos, out = set(), []
     for r in rts:
