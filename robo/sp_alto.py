@@ -6,6 +6,7 @@ Fontes públicas e gratuitas:
   3. Licenças ambientais de empreendimentos publicadas no GeoSampa.
   4. Notícias de alto padrão em SP lidas pela IA (função obras-ia, modo "sp"): escritório de arquitetura,
      construtora, incorporadora, bairro e estágio.
+  5. PDF oficial do alvará, quando publicado ("De Olho na Obra"): responsável técnico pelo projeto e pela execução (nome e CAU/CREA).
 Não guarda nomes de proprietários pessoas físicas. Saída: dados/obras/sp_alto.json."""
 import json, os, re, io, sys, time, html, hashlib, unicodedata, urllib.request, urllib.parse
 import xml.etree.ElementTree as ET
@@ -13,6 +14,7 @@ from datetime import datetime, timedelta, timezone
 
 DIR = "dados/obras"; os.makedirs(DIR, exist_ok=True)
 OUT, LOTES, CACHE, ALV = f"{DIR}/sp_alto.json", f"{DIR}/sp_lotes.json", f"{DIR}/sp_cache_noticias.json", f"{DIR}/sp_alvaras.json"
+RTF = f"{DIR}/sp_rt.json"
 IA = "https://caexsyimhdwshrwcetok.supabase.co/functions/v1/obras-ia"
 W = "http://wfs.geosampa.prefeitura.sp.gov.br/geoserver/geoportal/wfs"
 PAG = "https://prefeitura.sp.gov.br/web/licenciamento/w/servicos/331597"
@@ -283,6 +285,38 @@ def noticias(cache, estado):
                         "atualizado": r.get("_d"), "fontes": [f], "alto": bool(r.get("alto_padrao", True)) or arq in SEG}
     return list(obras.values())
 
+# ------------------------------------------------------------------ 5. responsáveis técnicos (PDF oficial do alvará)
+CONSTRUTORA = re.compile(r"\b(ENGENHARIA|CONSTRU\w*|INCORPORA\w*|EMPREENDIMENTOS|LTDA|EIRELI|S\.?A\.?)\b")
+def responsaveis(itens, rtc, minutos=12):
+    """Lê o PDF publicado dos alvarás de alto padrão: responsável pelo projeto e pela execução (nome e CAU/CREA)."""
+    import sp_rt
+    fim = time.time() + minutos * 60; lidos = pdfs = 0
+    for o in itens:
+        if o["origem"] != "alvara" or not (o.get("alto") or o.get("nobre")): continue
+        p = o.get("processo"); c = rtc.get(p)
+        if c and (c.get("rts") or (HOJE - datetime.fromisoformat(c["t"]).date()).days < 20): continue
+        if time.time() > fim: break
+        try: u, b = sp_rt.baixa(p)
+        except Exception as e: print("RT: Prefeitura recusou agora (", str(e)[:60], ")"); break
+        lidos += 1; reg = {"t": HOJE.isoformat()}
+        if b:
+            pdfs += 1; reg["url"] = u
+            try: reg["rts"] = sp_rt.le_rts(b)
+            except Exception as e: print("RT pdf", p, str(e)[:100])
+        rtc[p] = reg
+    n = 0
+    for o in itens:
+        c = rtc.get(o.get("processo")) if o["origem"] == "alvara" else None
+        if not (c and c.get("rts")): continue
+        n += 1; o["rts"] = c["rts"]
+        o["fontes"].append({"t": "Alvará publicado (PDF oficial) — responsáveis técnicos", "url": c["url"], "veiculo": "Prefeitura de SP (SMUL)", "data": o.get("atualizado")})
+        proj = {norm(r["nome"]) for r in c["rts"] if r["vinculo"] == "projeto"}
+        exe = [r for r in c["rts"] if r["vinculo"] == "execucao" and norm(r["nome"]) not in proj]
+        if exe: o["execucao_outro"] = True
+        emp = [r for r in exe if CONSTRUTORA.search(norm(r["nome"])) and "ARQUIT" not in norm(r["nome"])]
+        if emp and not o.get("construtora"): o["construtora"] = emp[0]["nome"]
+    print(f"responsáveis técnicos: {lidos} alvarás consultados hoje, {pdfs} PDFs publicados, {n} obras com responsável identificado")
+
 # ------------------------------------------------------------------ principal
 def main():
     lotes = json.load(open(LOTES)) if os.path.exists(LOTES) else {}
@@ -324,6 +358,11 @@ def main():
                           "atualizado": a["data"], "criado": a["primeira"], "alto": bool(nobre and (not res or (terreno or 0) >= 450)), "nobre": nobre,
                           "residencia_pf": res, "fontes": [{"t": "Relatório de alvarás emitidos — Prefeitura de São Paulo", "url": PAG, "veiculo": "Prefeitura de SP (SEL)", "data": a["data"]}]})
         fontes["alvaras"] = len(alv); print("lotes novos consultados no GeoSampa:", n_novos)
+        try:
+            rtc = json.load(open(RTF)) if os.path.exists(RTF) else {}
+            responsaveis(itens, rtc); json.dump(rtc, open(RTF, "w"), ensure_ascii=False, separators=(",", ":"))
+            fontes["responsaveis"] = sum(1 for o in itens if o.get("rts"))
+        except Exception as e: print("FALHA responsáveis técnicos", e)
     except Exception as e:
         print("FALHA alvarás", e)
         antes = [o for o in anterior.values() if o.get("origem") == "alvara"]; itens += antes; fontes["alvaras"] = f"mantido ({len(antes)})"
