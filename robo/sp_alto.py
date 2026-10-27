@@ -315,7 +315,7 @@ def responsaveis(itens, rtc, minutos=12):
         exe = [r for r in c["rts"] if r["vinculo"] == "execucao" and norm(r["nome"]) not in proj]
         if exe and proj: o["execucao_outro"] = True
         pj = [r for r in c["rts"] if r["vinculo"] in ("projeto", "ambos") and r.get("empresa") and not CONSTRUTORA.search(norm(r["nome"]).replace("LTDA", ""))]
-        if pj and not o.get("arquitetura"): o["arquitetura"] = canon_arq(re.sub(r"\s+(LTDA|EIRELI|ME|EPP|S/?A)\.?$", "", pj[0]["nome"], flags=re.I).title())
+        if pj and not o.get("arquitetura"): o["arquitetura"] = canon_arq(re.sub(r"\s+(LTDA|EIRELI|ME|EPP|S/?A|S/?S)\.?$", "", pj[0]["nome"], flags=re.I).title())
         emp = [r for r in exe if CONSTRUTORA.search(norm(r["nome"])) and "ARQUIT" not in norm(r["nome"])]
         if emp and not o.get("construtora"): o["construtora"] = emp[0]["nome"]
     print(f"responsáveis técnicos: {lidos} alvarás consultados hoje, {pdfs} PDFs publicados, {n} obras com responsável identificado")
@@ -388,8 +388,11 @@ def main():
     arquitetos = [{"nome": n, "seg": s, "origem": "lista", **midia.get(n, {})} for n, s, _ in ARQUITETOS]
     arquitetos += [{"nome": n, "seg": None, "origem": "descoberto", "desde": d, **midia.get(n, {})} for n, d in sorted(estado.get("descobertos", {}).items())]
     fontes["escritorios"] = len(arquitetos)
+    mesmo_arq = {chave_arq(n): n for n, _, _ in ARQUITETOS}
     for o in itens:
-        if o.get("arquitetura"): o["arquitetura"] = canon_arq(o["arquitetura"])
+        if o.get("arquitetura"):
+            a = canon_arq(o["arquitetura"]); k = chave_arq(a) if a else ""
+            o["arquitetura"] = mesmo_arq.setdefault(k, a) if k else None
         o["cidade"], o["uf"] = "São Paulo", "SP"
         o["empresa"] = o.get("incorporadora") or o.get("arquitetura")
         o["segmento"] = o.get("uso") or "OUTROS"
