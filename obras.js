@@ -121,6 +121,14 @@ const css=`
 
 .sparq{display:grid;gap:6px}.sparq button{display:flex;justify-content:space-between;gap:10px;align-items:center;text-align:left;border:1px solid var(--line,#e3e5ee);background:var(--card,#fff);border-radius:10px;padding:7px 10px;cursor:pointer;font:inherit;font-size:13px}
 .sparq button:hover{border-color:var(--accent,#5b5bd6)}.sparq span{color:var(--muted);font-size:11.5px;white-space:nowrap}
+.sparq .tg{font-size:10.5px;font-weight:700;color:#0f9d74;background:#e7f7f1;border-radius:6px;padding:1px 6px}
+.spbox .todos{margin-top:8px;width:100%;justify-content:center}
+.aqtop{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}.aqtop input{flex:1 1 220px}
+.aqlist{display:grid;gap:6px;max-height:58vh;overflow:auto;padding-right:4px}
+.aqr{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr) auto;gap:10px;align-items:center;border:1px solid var(--line,#e3e5ee);border-radius:10px;padding:8px 10px}
+.aqr b{display:block;font-size:13.5px}.aqr small{color:var(--muted);font-size:11.5px}.aqr .n{font-size:12px;color:var(--muted)}.aqr .n b{display:inline;font-size:13px;color:var(--ink)}.aqr .n .f{color:#0f9d74}
+.aqr .bt{display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end}
+@media(max-width:720px){.aqr{grid-template-columns:1fr}.aqr .bt{justify-content:flex-start}}
 
 .sptabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:4px 0 12px}
 .sptabs button{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:11px 14px;border-radius:12px;border:1px solid var(--line,#e3e5ee);background:var(--card,#fff);cursor:pointer;font:inherit;text-align:left;color:var(--ink)}
@@ -444,13 +452,14 @@ const SPEST={'PROJETO APROVADO':'#0f9d74','EXECUÇÃO LIBERADA':'#e0464e','LICEN
 const SPORIG={alvara:['Alvará','#0f9d74'],licenca:['Licença ambiental','#c27a06'],noticia:['Notícia','#7c5cf6']};
 const spProprias=()=>lg('orcalivre.sp.proprias',null)||(SPD.meta?.proprias)||[];
 const spPropria=o=>{ const t=N([o.incorporadora,o.construtora].join(' ')); return !!t.trim()&&spProprias().some(p=>p&&new RegExp('\\b'+N(p).replace(/[^A-Z0-9 ]/g,'')+'\\b').test(t)); };
-const SP0={q:'',aba:'opor',orig:'',est:'',uso:'',bairro:'',per:'365',ord:'rec',n:30};
+const SPFASE=new Set(['PROJETO','APROVAÇÃO','PROJETO APROVADO','LICENCIAMENTO','ANÚNCIO','LANÇAMENTO']);
+const SP0={q:'',aba:'fase',arq:'',orig:'',est:'',uso:'',bairro:'',per:'365',ord:'rec',n:30};
 S.sp=Object.assign({},SP0,lg('orcalivre.sp.f',{}),{n:30});
-const SPABAS=[['opor','Oportunidades','Alto padrão sem construtora definida'],['aprov','Projeto aprovado','Alvará de aprovação ainda sem execução — melhor momento'],['arq','Com arquiteto','Escritório de arquitetura identificado nas notícias'],['todas','Toda a cidade','Sem filtro de padrão nem de construtora']];
-const spBase=(o,aba)=>aba==='todas'?true:!!o.alto&&(aba==='opor'?(!o.construtora&&!spPropria(o)):aba==='aprov'?o.estagio==='PROJETO APROVADO':aba==='arq'?!!o.arquitetura:true);
+const SPABAS=[['fase','Fase ideal p/ contato','Alto padrão, sem construtora e ainda em projeto, aprovação ou lançamento — momento de procurar o arquiteto'],['opor','Oportunidades','Alto padrão sem construtora definida'],['aprov','Projeto aprovado','Alvará de aprovação ainda sem execução — melhor momento'],['arq','Com arquiteto','Escritório de arquitetura identificado nas notícias'],['todas','Toda a cidade','Sem filtro de padrão nem de construtora']];
+const spBase=(o,aba)=>aba==='todas'?true:!!o.alto&&(aba==='fase'?(!o.construtora&&!spPropria(o)&&SPFASE.has(o.estagio)):aba==='opor'?(!o.construtora&&!spPropria(o)):aba==='aprov'?o.estagio==='PROJETO APROVADO':aba==='arq'?!!o.arquitetura:true);
 function spFiltra(F,ignora){ const terms=N(F.q).split(/\s+/).filter(w=>w.length>1); const per=+F.per||0; const ig=k=>ignora===k;
   const L=SPD.itens.filter(o=>(ig('aba')||spBase(o,F.aba))&&(ig('orig')||!F.orig||o.origem===F.orig)&&(ig('est')||!F.est||o.estagio===F.est)&&(ig('uso')||!F.uso||(o.uso||'')===F.uso)
-    &&(ig('bairro')||!F.bairro||(o.bairro||'')===F.bairro)&&(ig('per')||!per||dias(o.atualizado)<=per)&&terms.every(w=>o._t.includes(w)));
+    &&(ig('bairro')||!F.bairro||(o.bairro||'')===F.bairro)&&(ig('arq')||!F.arq||N(o.arquitetura||'')===N(F.arq))&&(ig('per')||!per||dias(o.atualizado)<=per)&&terms.every(w=>o._t.includes(w)));
   const ord={rec:(a,b)=>String(b.atualizado||'').localeCompare(String(a.atualizado||'')),terreno:(a,b)=>(b.area_terreno||b.area_m2||0)-(a.area_terreno||a.area_m2||0),
     novo:(a,b)=>String(b.primeira_vez||'').localeCompare(String(a.primeira_vez||''))||String(b.atualizado||'').localeCompare(String(a.atualizado||'')),
     etapa:(a,b)=>(SPRANK[a.estagio]??9)-(SPRANK[b.estagio]??9)||String(b.atualizado||'').localeCompare(String(a.atualizado||''))}[F.ord]||(()=>0);
@@ -475,29 +484,29 @@ VIEWS.opSP=()=>{ if(SPD.st==='') carregarSP(); const F=S.sp;
   if(SPD.st!=='ok') return head('Alto padrão SP','Obras residenciais e comerciais de alto padrão na cidade de São Paulo')+(SPD.st==='err'?'<div class="empty"><b>Radar de SP ainda em preparação</b>A primeira coleta roda uma vez por dia. Tente novamente em alguns minutos.</div>':'<div class="empty"><b>Carregando…</b></div>');
   const L=spFiltra(F), vis=L.slice(0,F.n);
   const nAba=Object.fromEntries(SPABAS.map(([k])=>[k,spFiltra({...F,aba:k},'_').length]));
-  const cO=spConta(F,'orig',o=>o.origem), cE=spConta(F,'est',o=>o.estagio), cB=spConta(F,'bairro',o=>o.bairro), cU=spConta(F,'uso',o=>o.uso);
+  const cO=spConta(F,'orig',o=>o.origem), cE=spConta(F,'est',o=>o.estagio), cB=spConta(F,'bairro',o=>o.bairro), cU=spConta(F,'uso',o=>o.uso), cA=spConta(F,'arq',o=>o.arquitetura);
   const tot=k=>spFiltra(F,k).length;
   const nP=Object.fromEntries(['90','180','365','0'].map(p=>[p,spFiltra({...F,per:p}).length]));
   const etapas=Object.keys(SPEST).filter(e=>SPD.itens.some(o=>o.estagio===e)).sort((a,b)=>(SPRANK[a]??9)-(SPRANK[b]??9));
-  const arq={}; for(const o of SPD.itens.filter(o=>o.arquitetura&&o.alto)){ const k=o.arquitetura.trim(); arq[k]=arq[k]||{n:0,livre:0}; arq[k].n++; if(!o.construtora&&!spPropria(o)) arq[k].livre++; }
-  const rank=Object.entries(arq).sort((a,b)=>b[1].livre-a[1].livre||b[1].n-a[1].n).slice(0,10);
+  const arq=spArqs(), rank=arq.filter(a=>a.n).sort((a,b)=>b.fase-a.fase||b.livre-a.livre||b.n-a.n).slice(0,10);
   const mud=Object.keys(SP0).filter(k=>k!=='n'&&String(F[k])!==String(SP0[k])).length, ger=SPD.meta?.gerado?new Date(SPD.meta.gerado).toLocaleString('pt-BR',{dateStyle:'short',timeStyle:'short'}):'';
   return head('Alto padrão SP',`Obras residenciais e comerciais de alto padrão na capital${ger?' · atualizado em '+ger:''}`,`<button class="btn" data-act="spProprias" title="Empresas que constroem as próprias obras">${io('pred')} Construção própria (${spProprias().length})</button>`)+
    `<section class="sppanel"><div class="sptop"><div class="sps">${io('search',16)}<input id="spQ" value="${esc(F.q)}" placeholder="Buscar por escritório, bairro, rua ou incorporadora" autocomplete="off">${F.q?`<button class="x" data-act="spTira" data-k="q" aria-label="Limpar busca">${io('x',14)}</button>`:''}</div>
      <div class="spres"><b>${nf0.format(L.length)}</b> obra${L.length===1?'':'s'}</div>
      <button class="btn ${mud?'primary':''}" data-act="spLimpar" ${mud?'':'disabled'} title="Voltar todos os filtros ao padrão">${io('x',13)} Limpar filtros${mud?` (${mud})`:''}</button></div>
     <div class="spgrid2">
-     ${spSel('aba','Mostrar',SPABAS.map(([k,l])=>[k,l,nAba[k]]),F.aba,'Oportunidades = alto padrão sem construtora definida')}
+     ${spSel('aba','Mostrar',SPABAS.map(([k,l])=>[k,l,nAba[k]]),F.aba,'Fase ideal = alto padrão sem construtora, ainda em projeto, aprovação ou lançamento')}
      ${spSel('orig','Fonte',[['','Todas as fontes',tot('orig')],['alvara','Alvarás da Prefeitura',cO.alvara||0],['noticia','Notícias',cO.noticia||0],['licenca','Licenças ambientais',cO.licenca||0]],F.orig)}
      ${spSel('est','Etapa',[['','Todas as etapas',tot('est')],...etapas.map(e=>[e,spCap(e),cE[e]||0])],F.est,'Projeto aprovado = alvará sem execução ainda')}
      ${spSel('bairro','Bairro / distrito',[['','Todos os bairros',tot('bairro')],...Object.entries(cB).sort((a,b)=>b[1]-a[1]).map(([b,n])=>[b,spCap(b),n])],F.bairro)}
+     ${spSel('arq','Escritório',[['','Todos os escritórios',tot('arq')],...Object.entries(cA).sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0])).map(([a,n])=>[a,a,n]),...(F.arq&&!cA[F.arq]?[[F.arq,F.arq,0]]:[])],F.arq,'Só aparecem escritórios citados nas obras do filtro atual')}
      ${spSel('uso','Uso',[['','Todos os usos',tot('uso')],...Object.entries(cU).sort((a,b)=>b[1]-a[1]).map(([u,n])=>[u,spCap(u),n])],F.uso)}
      ${spSel('per','Atualizadas em',[['90','Últimos 90 dias',nP['90']],['180','Últimos 6 meses',nP['180']],['365','Último ano',nP['365']],['0','Qualquer data',nP['0']]],F.per)}
      ${spSel('ord','Ordenar por',[['rec','Mais recentes'],['etapa','Etapa (aprovado primeiro)'],['terreno','Maior terreno / área'],['novo','Entrada no radar']],F.ord)}
     </div></section>
    <div class="spgrid"><div class="splist">${vis.map(spCard).join('')||`<div class="empty"><b>Nenhuma obra com esses filtros</b><button class="btn" data-act="spLimpar" style="margin-top:10px">Limpar filtros</button></div>`}
      ${L.length>vis.length?`<div style="text-align:center;margin-top:6px"><button class="btn" data-act="spMais">Mostrar mais (${nf0.format(L.length-vis.length)})</button></div>`:''}</div>
-    <aside class="spside"><div class="spbox"><h3>Escritórios de arquitetura</h3>${rank.length?`<div class="sparq">${rank.map(([k,v])=>`<button data-act="spArq" data-v="${esc(k)}" title="Ver as obras deste escritório"><b>${esc(k)}</b><span>${v.n} obra${v.n>1?'s':''}${v.livre?` · ${v.livre} livre${v.livre>1?'s':''}`:''}</span></button>`).join('')}</div>`:'<span class="note">Aparecem conforme as notícias citam os projetos.</span>'}</div>
+    <aside class="spside"><div class="spbox"><h3>Escritórios de arquitetura</h3>${rank.length?`<div class="sparq">${rank.map(a=>`<button data-act="spArq" data-v="${esc(a.nome)}" title="Ver as obras deste escritório"><b>${esc(a.nome)}</b>${a.fase?`<span class="tg">${a.fase} na fase</span>`:`<span>${a.n} obra${a.n>1?'s':''}</span>`}</button>`).join('')}</div>`:'<span class="note">Aparecem conforme as notícias citam os projetos.</span>'}<button class="btn sm todos" data-act="spArqs">${io('pred',13)} Todos os escritórios (${nf0.format(arq.length)})</button></div>
      <details class="spbox spinfo"><summary>Como ler este radar</summary><p><b>Projeto aprovado</b>: alvará de aprovação ainda sem execução — melhor momento para abordar. <b>Execução liberada</b>: obra autorizada a começar.</p><p>Alvarás vêm do relatório mensal da Prefeitura (exceto HIS/HMP) com endereço, distrito, zoneamento e terreno do GeoSampa. Não informam arquiteto nem dono; em residências só a rua é exibida. Arquiteto, construtora e incorporadora vêm das notícias lidas por IA.</p></details></aside></div>`; };
 let spT=0;
 document.addEventListener('input',e=>{ if(e.target.id==='spQ'){ S.sp.q=e.target.value; S.sp.n=30; clearTimeout(spT); spT=setTimeout(()=>{ const p=e.target.selectionStart; spSalva(); render(); const i=$('#spQ'); if(i){ i.focus(); try{ i.setSelectionRange(p,p); }catch(_){} } },300); } });
@@ -508,8 +517,25 @@ ACT.spTira=d=>{ S.sp[d.k]=SP0[d.k]; S.sp.n=30; spSalva(); render(); };
 ACT.spLimpar=()=>{ Object.assign(S.sp,SP0); spSalva(); render(); toast('Filtros zerados.'); };
 ACT.spLink=(d,a)=>{ window.open(a.href,'_blank','noopener'); };
 ACT.spQuick=d=>{ S.sp.bairro=S.sp.bairro===d.v?'':d.v; S.sp.n=30; render(); };
-ACT.spArq=d=>{ Object.assign(S.sp,SP0,{aba:'todas',q:d.v}); spSalva(); render(); window.scrollTo({top:0,behavior:'smooth'}); };
+ACT.spArq=d=>{ Object.assign(S.sp,SP0,{aba:'todas',arq:d.v}); spSalva(); render(); window.scrollTo({top:0,behavior:'smooth'}); };
 ACT.spMais=()=>{ S.sp.n+=30; render(); };
+const spArqs=()=>{ const m=new Map(); const add=(nome,x={})=>{ const k=N(nome); if(!k) return null; if(!m.has(k)) m.set(k,{nome,seg:null,origem:'radar',midia:0,ultima:null,n:0,fase:0,livre:0}); const a=m.get(k); if(x.seg) a.seg=x.seg; if(x.origem) a.origem=x.origem; if(x.n!=null) a.midia=x.n; if(x.ultima) a.ultima=x.ultima; return a; };
+  for(const x of (SPD.meta?.arquitetos||[])) add(x.nome,x);
+  for(const o of SPD.itens) if(o.arquitetura){ const a=add(o.arquitetura.trim()); a.n++; const livre=!o.construtora&&!spPropria(o); if(livre) a.livre++; if(livre&&o.alto&&SPFASE.has(o.estagio)) a.fase++; }
+  return [...m.values()]; };
+const AQSEG={residencial:'Residencial',edifícios:'Edifícios',corporativo:'Corporativo',interiores:'Interiores','varejo/hotelaria':'Varejo / hotelaria'};
+ACT.spArqs=()=>{ const L=spArqs().sort((a,b)=>b.fase-a.fase||b.n-a.n||b.midia-a.midia||a.nome.localeCompare(b.nome)); const segs=[...new Set(L.map(a=>a.seg).filter(Boolean))];
+  const row=a=>`<div class="aqr" data-n="${esc(N(a.nome))}" data-s="${esc(a.seg||(a.origem==='descoberto'?'_novo':''))}"><div><b>${esc(a.nome)}</b><small>${a.seg?AQSEG[a.seg]||a.seg:a.origem==='descoberto'?'Encontrado nas notícias':'Citado no radar'}</small></div>
+    <div class="n">${a.n?`<b>${a.n}</b> obra${a.n>1?'s':''} no radar${a.fase?` · <b class="f">${a.fase}</b> na fase de contato`:''}`:'Sem obra no radar agora'}<br>${a.midia?`${a.midia} notícia${a.midia>1?'s':''} em 12 meses${a.ultima?` · última ${fd(a.ultima)}`:''}`:'Ainda não consultado ou sem notícias'}</div>
+    <div class="bt">${a.n?`<button class="btn sm primary" data-act="spArqVer" data-v="${esc(a.nome)}">Ver obras</button>`:''}<a class="btn sm" target="_blank" rel="noopener" href="${gS(a.nome+' arquitetura site')}">${io('ext',12)}Site</a><a class="btn sm" target="_blank" rel="noopener" href="${lkC(a.nome)}">${io('pred',12)}LinkedIn</a><a class="btn sm" target="_blank" rel="noopener" href="https://news.google.com/search?q=${encodeURIComponent('"'+a.nome+'"')}&hl=pt-BR&gl=BR&ceid=BR:pt-419">${io('ext',12)}Notícias</a></div></div>`;
+  modal(()=>dlg(`<h2 style="margin:0;font-size:17px">Escritórios de arquitetura de alto padrão</h2>`,
+   `<p class="note" style="margin-top:0">${nf0.format(L.length)} escritórios acompanhados. O robô procura notícias de cada um em rodízio diário e acrescenta sozinho os que aparecem em obras de alto padrão na capital. "Na fase de contato" = obra sem construtora, ainda em projeto, aprovação ou lançamento.</p>
+   <div class="aqtop"><input id="aqQ" placeholder="Filtrar por nome" autocomplete="off" autofocus><select id="aqS"><option value="">Todos os segmentos</option>${segs.map(s=>`<option value="${esc(s)}">${esc(AQSEG[s]||s)}</option>`).join('')}<option value="_novo">Encontrados nas notícias</option></select></div>
+   <div class="aqlist">${L.map(row).join('')}</div>`,'',true)); };
+ACT.spArqVer=d=>{ closeModal(); ACT.spArq(d); };
+const aqFiltra=()=>{ const q=N($('#aqQ')?.value||''), s=$('#aqS')?.value||''; document.querySelectorAll('.aqr').forEach(r=>{ r.hidden=!((!q||r.dataset.n.includes(q))&&(!s||r.dataset.s===s)); }); };
+document.addEventListener('input',e=>{ if(e.target.id==='aqQ') aqFiltra(); });
+document.addEventListener('change',e=>{ if(e.target.id==='aqS') aqFiltra(); });
 ACT.spProprias=()=>{ modal(()=>dlg('<h2 style="margin:0;font-size:17px">Incorporadoras com construção própria</h2>',
   `<p class="note" style="margin-top:0">Obras dessas empresas recebem a etiqueta "construção própria" e saem do filtro "Sem construtora definida". Uma empresa por linha.</p><textarea id="spPr" rows="12" style="width:100%">${esc(spProprias().join('\n'))}</textarea>`,
   `<button class="btn" data-act="spPrReset">Restaurar padrão</button><button class="btn primary" data-act="spPrSalvar">Salvar</button>`)); };
