@@ -105,4 +105,11 @@ def escritorios(nomes, arq, minutos=12):
         except Exception as e: print("contato", n, str(e)[:100])
     print(f"contatos de escritórios: {ok} com telefone ou e-mail nesta rodada")
     json.dump(cache, open(arq, "w"), ensure_ascii=False, separators=(",", ":"))
-    return {n: {k: v for k, v in c.items() if k not in ("verificado", "v") and v} for n, c in cache.items() if c.get("site")}
+    NAO = re.compile(r"^(rh|cv|curriculos?|academicos?|job|jobs|press|imprensa|selecao|vagas|trabalheconosco|estagio)@", re.I)
+    def limpa(c):
+        c = {k: v for k, v in c.items() if k not in ("verificado", "v") and v}
+        if c.get("emails"): c["emails"] = [e for e in c["emails"] if not NAO.match(e)] or None
+        for k in ("telefones", "whatsapp"):
+            if c.get(k): c[k] = [x for x in c[k] if not x.startswith("(55)")] or None
+        return {k: v for k, v in c.items() if v}
+    return {n: limpa(c) for n, c in cache.items() if c.get("site")}
