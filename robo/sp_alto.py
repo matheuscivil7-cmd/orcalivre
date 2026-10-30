@@ -403,8 +403,18 @@ def main():
         o["primeira_vez"] = pv or (min(str(o.get("criado") or o.get("atualizado") or HOJE)[:10], HOJE.isoformat()) if not anterior else HOJE.isoformat())
         for k in [k for k, v in o.items() if v in (None, "", [])]: del o[k]
     itens.sort(key=lambda o: o.get("atualizado") or "", reverse=True)
+    # canais comerciais públicos dos escritórios (prioridade: obras na fase de contato, depois as demais, depois a lista)
+    contatos = {}
+    try:
+        import sp_contatos
+        FASE = {"PROJETO", "APROVAÇÃO", "PROJETO APROVADO", "LICENCIAMENTO", "ANÚNCIO", "LANÇAMENTO"}
+        fase = [o["arquitetura"] for o in itens if o.get("arquitetura") and o.get("alto") and o.get("sem_construtora") and o.get("estagio") in FASE]
+        resto = [o["arquitetura"] for o in itens if o.get("arquitetura")]
+        contatos = sp_contatos.escritorios(fase + resto + [a["nome"] for a in arquitetos], f"{DIR}/sp_contatos.json", int(os.environ.get("SP_CONTATOS_MIN", "12")))
+        fontes["contatos"] = sum(1 for c in contatos.values() if c.get("telefones") or c.get("whatsapp") or c.get("emails"))
+    except Exception as e: print("FALHA contatos", e)
     json.dump({"gerado": datetime.now(timezone.utc).isoformat(timespec="minutes"), "fontes": fontes, "total": len(itens),
-               "nobres": sorted(NOBRES), "proprias": PROPRIAS, "arquitetos": arquitetos, "itens": itens}, open(OUT, "w"), ensure_ascii=False, separators=(",", ":"))
+               "nobres": sorted(NOBRES), "proprias": PROPRIAS, "arquitetos": arquitetos, "contatos": contatos, "itens": itens}, open(OUT, "w"), ensure_ascii=False, separators=(",", ":"))
     print("total:", len(itens), fontes, "alto padrão:", sum(1 for o in itens if o.get("alto")))
 
 if __name__ == "__main__":
