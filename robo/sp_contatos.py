@@ -4,7 +4,9 @@ import json, os, re, time
 from datetime import timedelta
 import obras_extra as X
 
-VERSAO = 1
+VERSAO = 2
+SITES = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "sp_sites.json"))) if os.path.exists(os.path.join(os.path.dirname(os.path.abspath(__file__)), "sp_sites.json")) else {}
+FALSO = re.compile(r"mysite|example|exemplo|seudominio|seuemail|dominio\.com|email\.com|domain\.com|sentry|wixpress|godaddy", re.I)
 TEL = re.compile(r"(?:\+?55[\s.\-]?)?\(?\b([1-9]\d)\)?[\s.\-]?(9?\d{4})[\s.\-]?(\d{4})\b")
 WA = re.compile(r"(?:wa\.me/|api\.whatsapp\.com/send\?phone=|whatsapp\.com/send/?\?phone=)\+?(\d{10,13})", re.I)
 MAIL = re.compile(r"[\w.\-+]+@[\w\-]+(?:\.[\w\-]+)+")
@@ -41,21 +43,29 @@ def _dados(h, dom):
         if t and t not in tels and t not in was: tels.append(t)
     base = (dom or "").split(".")[0]
     for e in set(x.lower() for x in MAIL.findall(h)):
-        if e.endswith((".png", ".jpg", ".svg", ".webp", ".gif")) or "sentry" in e or "wix" in e: continue
-        if MAIL_OK.match(e) or (base and base in e.split("@")[1] and len(e.split("@")[0]) <= 12 and not re.search(r"[a-z]+\.[a-z]+@", e)):
+        if e.endswith((".png", ".jpg", ".svg", ".webp", ".gif")) or FALSO.search(e): continue
+        dm = e.split("@")[1]
+        if base and base not in dm and not dm.startswith(("gmail.", "hotmail.", "outlook.", "uol.", "terra.")): continue
+        if MAIL_OK.match(e) or (base and base in dm and len(e.split("@")[0]) <= 12 and not re.search(r"[a-z]+\.[a-z]+@", e)):
             if e not in mails: mails.append(e)
     m = SOCIAL.search(h)
     if m and m.group(1).lower() not in ("p", "explore", "accounts", "reel", "stories"): insta = "https://www.instagram.com/" + m.group(1) + "/"
     return tels, was, mails, insta
 
-def contato(nome):
+def contato(nome, buscar=True):
+    if nome in SITES:
+        return _le_site(nome, SITES[nome])
+    if not buscar: return None
     tok = [w.lower() for w in X.chave_empresa(nome).split() if len(w) > 3] or [w.lower() for w in X.chave_empresa(nome).split() if len(w) > 1]
     site = ""
     for u, t in X.busca_web(f'"{nome}" arquitetura São Paulo'):
         d = X.dominio(u)
         if not d or X.RUIM.search(d) or "archdaily" in d or "casavogue" in d or "gshow" in d: continue
         if any(x in d.replace("-", "") for x in tok): site = "https://" + d; break
-    time.sleep(4)
+    time.sleep(15)
+    return _le_site(nome, site)
+
+def _le_site(nome, site):
     out = {"verificado": X.HOJE.isoformat(), "v": VERSAO}
     if not site: return out
     out["site"] = site
@@ -80,15 +90,18 @@ def escritorios(nomes, arq, minutos=12):
     vencido = lambda c: not c or c.get("v") != VERSAO or c.get("verificado", "") < (lim_ok if achou(c) else lim_vazio)
     fila = [n for n in dict.fromkeys(nomes) if n and vencido(cache.get(n))]
     print(f"contatos de escritórios: {len(fila)} para pesquisar ({len(cache)} no cache)")
-    fim, ok, pausas = time.time() + minutos * 60, 0, 0
+    fim, ok, pausas, buscas = time.time() + minutos * 60, 0, 0, 0
+    # primeiro os escritórios com site conhecido (sem buscador), depois até 15 buscas por dia
+    fila.sort(key=lambda n: n not in SITES)
     for n in fila:
         if time.time() > fim: print("  contatos: tempo esgotado, continua amanhã"); break
+        if n not in SITES and (pausas or buscas >= 15): continue
         try:
-            c = contato(n); cache[n] = c; ok += bool(achou(c))
+            if n not in SITES: buscas += 1
+            c = contato(n)
+            if c is not None: cache[n] = c; ok += bool(achou(c))
         except X.Bloqueado:
-            pausas += 1; print("  busca bloqueada temporariamente; pausa")
-            if pausas > 2: break
-            time.sleep(120)
+            pausas += 1; print("  busca bloqueada; as buscas continuam amanhã")
         except Exception as e: print("contato", n, str(e)[:100])
     print(f"contatos de escritórios: {ok} com telefone ou e-mail nesta rodada")
     json.dump(cache, open(arq, "w"), ensure_ascii=False, separators=(",", ":"))
