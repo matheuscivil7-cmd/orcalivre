@@ -1,6 +1,7 @@
 {
  "sinapi": {
   "meses": [
+   "2026-10",
    "2026-09",
    "2026-08",
    "2026-07"
@@ -55,11 +56,18 @@
     "an": 56316,
     "emissao": "11/08/2026",
     "conferencia_sp": 0.9788
+   },
+   "2026-10": {
+    "ins": 6368,
+    "comp": 10710,
+    "an": 57096,
+    "emissao": "12/11/2026",
+    "conferencia_sp": 0.9798
    }
   },
   "fonte": "SINAPI – Caixa Econômica Federal (relatórios mensais XLSX)"
  },
- "gerado": "2026-10-23",
+ "gerado": "2026-11-13",
  "pub": {
   "CDHU": {
    "n": "CDHU · São Paulo",
